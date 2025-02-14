@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <unsupported/Eigen/CXX11/Tensor>
@@ -12,8 +13,9 @@ class ScatterElements {
   static Eigen::Tensor<Scalar, Dim> Compute(
       const Eigen::Tensor<Scalar, Dim>& data,
       const Eigen::Tensor<int64_t, Dim>& indices,
-      const Eigen::Tensor<Scalar, Dim>& updates, int64_t axis,
+      const Eigen::Tensor<Scalar, Dim>& updates, int64_t axis = 0,
       const std::string& reduction = "none") {
+    static_assert(Dim >= 1, "Dim must be at least 1");
     // default is assign
     std::function<Scalar(Scalar, Scalar)> f = [](Scalar a, Scalar b) {
       return b;
@@ -24,6 +26,10 @@ class ScatterElements {
       f = [](Scalar a, Scalar b) { return a - b; };
     } else if (reduction == "mul") {
       f = [](Scalar a, Scalar b) { return a * b; };
+    } else if (reduction == "max") {
+      f = [](Scalar a, Scalar b) { return std::max(a, b); };
+    } else if (reduction == "min") {
+      f = [](Scalar a, Scalar b) { return std::min(a, b); };
     }
 
     auto data_dims = data.dimensions();
@@ -42,7 +48,6 @@ class ScatterElements {
 
     // 计算索引的总数
     auto total_elements = indices.size();
-
     // 遍历所有索引
     for (Eigen::Index i = 0; i < total_elements; ++i) {
       // 计算多维索引
@@ -60,7 +65,6 @@ class ScatterElements {
         idx[d] = remaining % indices_dims[d];
         remaining /= indices_dims[d];
       }
-
       // 获取目标索引
       int64_t target_idx = indices(idx);
       if (!(target_idx >= 0 && target_idx < data_dims[axis])) {
@@ -71,7 +75,6 @@ class ScatterElements {
       auto output_idx = idx;
       output_idx[axis] = target_idx;
 
-      // 更新值
       if (reduction == "add") {
         output(output_idx) += updates(idx);
       } else if (reduction == "sub") {

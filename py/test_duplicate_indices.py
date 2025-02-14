@@ -30,6 +30,6 @@ def test_duplicate_indices():
     y = scatter_elements(data, indices, updates, axis, reduction="add")
     print("Complex scatter result:")
     print(y)
-
+    np.compress
 
 test_duplicate_indices()
