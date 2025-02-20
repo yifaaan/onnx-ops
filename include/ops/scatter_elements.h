@@ -5,7 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
-
+#include "utils.h"
 namespace onnx {
 template <typename T>
 class ScatterElements {
@@ -47,21 +47,12 @@ class ScatterElements {
 
     auto output = data;
 
-    std::vector<int64_t> strides(data_shape.size());
-    strides.back() = 1;
-    for (int64_t i = data_shape.size() - 2; i >= 0; --i) {
-      strides[i] = strides[i + 1] * data_shape[i + 1];
-    }
+    std::vector<int64_t> strides = get_strides(data_shape);
 
     auto total_idx = indices.size();
     for (int64_t i = 0; i < total_idx; ++i) {
       // 计算i的多维索引
-      std::vector<int64_t> curr_indices(indices_shape.size());
-      int64_t remaining = i;
-      for (int64_t d = indices_shape.size() - 1; d >= 0; --d) {
-        curr_indices[d] = remaining % indices_shape[d];
-        remaining /= indices_shape[d];
-      }
+      std::vector<int64_t> curr_indices = offset_to_coords(i, indices_shape);
 
       int64_t target_idx = indices[i];
       if (target_idx < 0) target_idx += data_shape[axis];

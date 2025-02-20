@@ -6,6 +6,14 @@ add_executable(test_compress
     test_compress.cpp
 )
 
+add_executable(test_gather_elements
+    test_gather_elements.cpp
+)
+
+target_include_directories(test_gather_elements
+    PRIVATE ${CMAKE_SOURCE_DIR}/include
+)
+
 target_include_directories(test_scatter_elements
     PRIVATE ${CMAKE_SOURCE_DIR}/include
 )
@@ -21,3 +29,7 @@ target_link_libraries(test_scatter_elements
 target_link_libraries(test_compress
     PRIVATE Catch2::Catch2 Catch2::Catch2WithMain
 ) 
+
+target_link_libraries(test_gather_elements
+    PRIVATE Catch2::Catch2 Catch2::Catch2WithMain
+)

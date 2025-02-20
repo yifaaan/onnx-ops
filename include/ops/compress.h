@@ -5,7 +5,7 @@
 #include <optional>
 #include <vector>
 #include <algorithm>
-
+#include "utils.h"
 namespace onnx {
 
 template <typename T>
@@ -52,18 +52,10 @@ class Compress {
     std::vector<T> result(total_size);
 
 
-    std::vector<int64_t> strides(shape.size());
-    strides.back() = 1;
-    for (int i = shape.size() - 2; i >= 0; --i) {
-      strides[i] = strides[i + 1] * shape[i + 1];
-    }
+    std::vector<int64_t> strides = get_strides(shape);
 
 
-    std::vector<int64_t> output_strides(output_shape.size());
-    output_strides.back() = 1;
-    for (int i = output_shape.size() - 2; i >= 0; --i) {
-      output_strides[i] = output_strides[i + 1] * output_shape[i + 1];
-    }
+    std::vector<int64_t> output_strides = get_strides(output_shape);
 
     // 创建索引映射数组
     // condition [true, false, true]，-> [0, -1, 1]
@@ -78,14 +70,9 @@ class Compress {
     }
 
 
-    std::vector<int64_t> curr_indices(shape.size());
     for (size_t i = 0; i < data.size(); ++i) {
       // 计算当前位置的多维索引
-      size_t temp = i;
-      for (int d = shape.size() - 1; d >= 0; --d) {
-        curr_indices[d] = temp % shape[d];
-        temp /= shape[d];
-      }
+      auto curr_indices = offset_to_coords(i, shape);
 
       if (!condition[curr_indices[axis]]) {
         continue;
