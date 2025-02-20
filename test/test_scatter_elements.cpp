@@ -161,3 +161,134 @@ TEST_CASE("2D Scatter Elements Special Cases", "[scatter][2d][special]") {
     REQUIRE(result(1, 1) == Approx(4.4f));  // 4.0 + 0.4
   }
 }
+
+TEST_CASE("3D Scatter Elements Operations", "[scatter][3d]") {
+  SECTION("Basic 3D scatter (axis=1)") {
+    // 创建2x3x2的测试数据
+    Eigen::Tensor<float, 3> data(2, 3, 2);
+    data.setValues(
+      {
+        {
+          {1.0f, 2.0f}, 
+          {3.0f, 4.0f}, 
+          {5.0f, 6.0f}
+        },
+        {
+          {7.0f, 8.0f}, 
+          {9.0f, 10.0f},
+          {11.0f, 12.0f}
+        }
+      });
+
+    Eigen::Tensor<int64_t, 3> indices(2, 3, 2);
+    indices.setValues(
+      {
+        {
+          {1, 0}, 
+          {0, 2}, 
+          {2, 1}
+        },
+        {
+          {0, 1}, 
+          {2, 0}, 
+          {1, 2}}
+      });
+
+    /*
+    {
+        {
+          {1.3f, 2.4f}, 
+          {3.1f, 4.6f}, 
+          {5.5f, 6.4f}
+        },
+        {
+          {7.7f, 9.0f}, 
+          {10.1f, 10.8f},
+          {11.9f, 13.2f}
+        }
+      }
+    */
+
+    Eigen::Tensor<float, 3> updates(2, 3, 2);
+    updates.setValues(
+      {
+        {
+          {0.1f, 0.2f}, 
+          {0.3f, 0.4f}, 
+          {0.5f, 0.6f}
+        },
+        {
+            {0.7f, 0.8f}, 
+            {0.9f, 1.0f}, 
+            {1.1f, 1.2f}
+        }
+      });
+
+    // 测试加法操作
+    auto result_add = onnx::ScatterElements<float, 3>::Compute(
+        data, indices, updates, 1, "add");
+
+    // 验证部分结果
+    REQUIRE(result_add(0, 0, 0) == Approx(1.3f)); 
+    REQUIRE(result_add(0, 1, 1) == Approx(4.6f)); 
+    REQUIRE(result_add(1, 2, 0) == Approx(10.1f));
+
+    // 测试乘法操作
+    auto result_mul = onnx::ScatterElements<float, 3>::Compute(
+        data, indices, updates, 1, "mul");
+
+    // 验证部分结果
+    REQUIRE(result_mul(0, 0, 0) == Approx(0.3f));  // 1.0 * 0.3
+    REQUIRE(result_mul(0, 1, 1) == Approx(0.8f));  // 4.0 * 0.2
+    REQUIRE(result_mul(1, 2, 0) == Approx(9.9f));  // 11.0 * 0.9
+  }
+
+  SECTION("3D scatter along axis 2") {
+    // 创建2x2x3的测试数据
+    Eigen::Tensor<float, 3> data(2, 2, 3);
+    data.setValues({{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}},
+                    {{7.0f, 8.0f, 9.0f}, {10.0f, 11.0f, 12.0f}}});
+
+    Eigen::Tensor<int64_t, 3> indices(2, 2, 3);
+    indices.setValues({{{2, 0, 1}, {1, 2, 0}},
+                      {{0, 1, 2}, {2, 1, 0}}});
+
+    Eigen::Tensor<float, 3> updates(2, 2, 3);
+    updates.setValues({{{0.1f, 0.2f, 0.3f}, {0.4f, 0.5f, 0.6f}},
+                      {{0.7f, 0.8f, 0.9f}, {1.0f, 1.1f, 1.2f}}});
+
+    // 测试替换操作
+    auto result_none = onnx::ScatterElements<float, 3>::Compute(
+        data, indices, updates, 2, "none");
+
+    // 验证部分结果
+    REQUIRE(result_none(0, 0, 0) == Approx(0.2f));
+    REQUIRE(result_none(0, 1, 1) == Approx(0.5f));
+    REQUIRE(result_none(1, 0, 2) == Approx(0.9f));
+  }
+
+  SECTION("3D scatter error handling") {
+    // 创建2x2x2的测试数据
+    Eigen::Tensor<float, 3> data(2, 2, 2);
+    data.setValues({{{1.0f, 2.0f}, {3.0f, 4.0f}},
+                    {{5.0f, 6.0f}, {7.0f, 8.0f}}});
+
+    // 索引超出范围的情况
+    Eigen::Tensor<int64_t, 3> indices(2, 2, 2);
+    indices.setValues({{{0, 3}, {1, 0}},  // 3超出了范围
+                      {{1, 0}, {0, 1}}});
+
+    Eigen::Tensor<float, 3> updates(2, 2, 2);
+    updates.setValues({{{0.1f, 0.2f}, {0.3f, 0.4f}},
+                      {{0.5f, 0.6f}, {0.7f, 0.8f}}});
+
+    bool exception_caught = false;
+    try {
+      auto result = onnx::ScatterElements<float, 3>::Compute(
+          data, indices, updates, 1, "add");
+    } catch (const std::out_of_range&) {
+      exception_caught = true;
+    }
+    REQUIRE(exception_caught);
+  }
+}
