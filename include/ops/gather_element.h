@@ -24,7 +24,7 @@ public:
             return {};
         }
 
-        // 检查除了axis维度外的其他维度是否相同
+        // 检查除了axis外的其他轴的大小是否相同
         for (int d = 0; d < indices_shape.size(); d++)
         {
             if (d != axis && data_shape[d] != indices_shape[d])
@@ -57,12 +57,11 @@ public:
             // 计算当前位置的多维坐标
             std::vector<int64_t> curr_coords = offset_to_coords(i, indices_shape);
 
-            // 对应轴的索引
+            // 对应轴的索引index[a][b][c]
             int64_t target_idx = indices[i];
             // 处理负数索引
             if (target_idx < 0)
                 target_idx += data_shape[axis];
-            // 检查索引范围
             if (target_idx < 0 || target_idx >= data_shape[axis])
             {
                 throw std::out_of_range("index out of range");
@@ -84,7 +83,6 @@ public:
 
             int64_t src_offset = coords_to_offset(src_coords, data_shape);
 
-            // 收集元素
             result[i] = data[src_offset];
         }
 

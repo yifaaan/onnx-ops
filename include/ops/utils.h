@@ -34,6 +34,8 @@ inline std::vector<int64_t> offset_to_coords(int64_t offset, const std::vector<i
 }
 
 /// 获得每个维度的步长
+3 * 2 * 3
+6   3   1
 inline std::vector<int64_t> get_strides(const std::vector<int64_t>& shape)
 {
     std::vector<int64_t> strides(shape.size());

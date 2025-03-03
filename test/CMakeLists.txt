@@ -14,6 +14,14 @@ add_executable(test_gather_nd
     test_gather_nd.cpp
 )
 
+add_executable(test_global_max_pool
+    test_global_max_pool.cpp
+)
+
+add_executable(test_lp_normalization
+    test_lp_normalization.cpp
+)
+
 target_include_directories(test_gather_elements
     PRIVATE ${CMAKE_SOURCE_DIR}/include
 )
@@ -30,8 +38,16 @@ target_include_directories(test_gather_nd
     PRIVATE ${CMAKE_SOURCE_DIR}/include
 )
 
+target_include_directories(test_global_max_pool
+    PRIVATE ${CMAKE_SOURCE_DIR}/include
+)
+
+target_include_directories(test_lp_normalization
+    PRIVATE ${CMAKE_SOURCE_DIR}/include
+)
+
 target_link_libraries(test_scatter_elements
-    PRIVATE Catch2::Catch2 Catch2::Catch2WithMain Eigen3::Eigen
+    PRIVATE Catch2::Catch2 Catch2::Catch2WithMain
 ) 
 
 target_link_libraries(test_compress
@@ -43,5 +59,13 @@ target_link_libraries(test_gather_elements
 )
 
 target_link_libraries(test_gather_nd
+    PRIVATE Catch2::Catch2 Catch2::Catch2WithMain
+)
+
+target_link_libraries(test_global_max_pool
+    PRIVATE Catch2::Catch2 Catch2::Catch2WithMain
+)
+
+target_link_libraries(test_lp_normalization
     PRIVATE Catch2::Catch2 Catch2::Catch2WithMain
 )
