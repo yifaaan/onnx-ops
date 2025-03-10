@@ -1,7 +1,6 @@
 #pragma once
 
 #include "utils.h"
-#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #include <vector>
@@ -17,28 +16,22 @@ public:
     Compute(const std::vector<T>& data, const std::vector<int64_t>& shape, int64_t axis = -1,
             int64_t p = 2)
     {
-        // 验证参数
         if (p != 1 && p != 2)
         {
             throw std::invalid_argument("LpNormalization: p must be 1 or 2");
         }
-
-        // 处理负轴索引
         if (axis < 0)
         {
             axis += shape.size();
         }
 
-        // 验证轴的有效性
         if (axis < 0 || axis >= static_cast<int64_t>(shape.size()))
         {
             throw std::invalid_argument("LpNormalization: axis out of range");
         }
 
-        // 计算输出形状 (与输入形状相同)
         std::vector<int64_t> output_shape = shape;
 
-        // 计算指定轴的大小
         int64_t axis_size = shape[axis];
 
         // 计算轴前所有维度的乘积
@@ -63,7 +56,6 @@ public:
         // axis_size = 3
         // inner_size = 8
 
-        // 对每个外部维度的切片进行处理
         for (int64_t outer = 0; outer < outer_size; ++outer)
         {
             for (int64_t inner = 0; inner < inner_size; ++inner)
@@ -74,8 +66,7 @@ public:
                 for (int64_t a = 0; a < axis_size; ++a)
                 {
                     // 计算数据索引
-                    // outer * axis_size * inner_size 是每个外部维度的偏移量
-                    // inner 是每个样本的偏移量
+                    // 2 * 3 * 4 * 5
                     int64_t idx = outer * axis_size * inner_size + a * inner_size + inner;
 
                     if (p == 1)

@@ -2,7 +2,6 @@
 
 #include "utils.h"
 #include <algorithm>
-#include <initializer_list>
 #include <limits>
 #include <stdexcept>
 #include <vector>
@@ -39,12 +38,11 @@ public:
             output_shape[i] = 1;
         }
 
-        // 计算输出大小
         int64_t batch_size = shape[0];
         int64_t channels = shape[1];
         int64_t output_size = batch_size * channels;
 
-        // 计算每个通道需要处理的元素数量
+        // 计算每个通道的元素数量
         int64_t elements_per_channel = 1;
         for (size_t i = 2; i < shape.size(); ++i)
         {
@@ -66,13 +64,10 @@ public:
                 int64_t base_offset =
                     n * channels * elements_per_channel + c * elements_per_channel;
 
-                // 在所有空间维度上查找最大值
                 for (int64_t i = 0; i < elements_per_channel; ++i)
                 {
                     max_val = std::max(max_val, data[base_offset + i]);
                 }
-
-                // 设置输出值
                 result[n * channels + c] = max_val;
             }
         }
