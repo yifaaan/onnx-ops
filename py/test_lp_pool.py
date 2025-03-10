@@ -5,7 +5,7 @@ import onnxruntime as ort
 import json
 import os
 import random
-
+import time
 def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, auto_pad="NOTSET", test_name="test"):
     """
     生成LpPool测试用例
@@ -24,16 +24,17 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
     # 对于4维: [batch, channels, height, width]
     # 对于5维: [batch, channels, depth, height, width]
     
+    
     # 为了避免内存问题，对高维数据进行规模控制
     if dims == 3:
-        batch = random.randint(1, 2)
+        batch = random.randint(2, 10)
         channels = random.randint(2, 4)
         seq_len = random.randint(80, 120)
         input_shape = [batch, channels, seq_len]
         if kernel_shape is None:
             kernel_shape = [3]
     elif dims == 4:
-        batch = random.randint(1, 2)
+        batch = random.randint(2, 10)
         channels = random.randint(2, 4)
         height = random.randint(80, 120)
         width = random.randint(80, 120)
@@ -41,11 +42,11 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
         if kernel_shape is None:
             kernel_shape = [3, 3]
     else:  # dims == 5
-        batch = 1
-        channels = 2
-        depth = random.randint(8, 16)  # 降低5维的规模
-        height = random.randint(10, 20)
-        width = random.randint(10, 20)
+        batch = random.randint(2, 10)
+        channels = random.randint(2, 4)
+        depth = random.randint(80, 120)
+        height = random.randint(80, 120)
+        width = random.randint(80, 120)
         input_shape = [batch, channels, depth, height, width]
         if kernel_shape is None:
             kernel_shape = [2, 2, 2]
@@ -58,7 +59,8 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
         pads = [0] * (spatial_dims * 2)  # 前后各维度的填充
     
     # 生成随机输入数据
-    np.random.seed(0)  # 固定随机种子以便复现
+    # np.random.seed(0)  # 固定随机种子以便复现
+    random.seed(int(time.time()))
     input_data = np.random.uniform(-1.0, 1.0, input_shape).astype(np.float32)
     
     # 构建ONNX模型
@@ -206,21 +208,53 @@ TEST(LpPoolTest, {test_name.replace(" ", "_")}) {{
     return test_data, cpp_code
 
 # 生成3维测试用例
-test_3d, cpp_3d = generate_lppool_test(
+test_3d_1, cpp_3d_1 = generate_lppool_test(
+    dims=3,
+    p=2,
+    kernel_shape=[3],
+    strides=[1],
+    test_name="LpPool_3D_1"
+)
+
+test_3d_2, cpp_3d_2 = generate_lppool_test(
     dims=3,
     p=2,
     kernel_shape=[3],
     strides=[2],
-    test_name="LpPool_3D"
+    test_name="LpPool_3D_2"
+)
+
+test_3d_3, cpp_3d_3 = generate_lppool_test(
+    dims=3,
+    p=2,
+    kernel_shape=[3],
+    strides=[3],
+    test_name="LpPool_3D_3"
 )
 
 # 生成4维测试用例
-test_4d, cpp_4d = generate_lppool_test(
+test_4d_1, cpp_4d_1 = generate_lppool_test(
     dims=4,
     p=2,
     kernel_shape=[3, 3],
     strides=[2, 2],
-    test_name="LpPool_4D"
+    test_name="LpPool_4D_1"
+)
+
+test_4d_2, cpp_4d_2 = generate_lppool_test(
+    dims=4,
+    p=2,
+    kernel_shape=[3, 3],
+    strides=[1, 2],
+    test_name="LpPool_4D_2"
+)
+
+test_4d_3, cpp_4d_3 = generate_lppool_test(
+    dims=4,
+    p=2,
+    kernel_shape=[3, 3],
+    strides=[2, 3],
+    test_name="LpPool_4D_3"
 )
 
 # 生成5维测试用例1
@@ -228,7 +262,7 @@ test_5d_1, cpp_5d_1 = generate_lppool_test(
     dims=5,
     p=1,  # 使用L1范数
     kernel_shape=[2, 2, 2],
-    strides=[2, 2, 2],
+    strides=[1, 2, 3],
     test_name="LpPool_5D_1"
 )
 
@@ -237,31 +271,54 @@ test_5d_2, cpp_5d_2 = generate_lppool_test(
     dims=5,
     p=2,
     kernel_shape=[2, 2, 2],
-    strides=[2, 2, 2],
+    strides=[2, 1, 3],
     test_name="LpPool_5D_2"
 )
 
+test_5d_3, cpp_5d_3 = generate_lppool_test(
+    dims=5,
+    p=2,
+    kernel_shape=[2, 2, 2],
+    strides=[2, 2, 3],
+    test_name="LpPool_5D_3"
+)
 # 输出C++测试代码
 print("// LpPool 3D 测试")
-print(cpp_3d)
+print(cpp_3d_1)
+print(cpp_3d_2)
+print(cpp_3d_3)
 print("\n// LpPool 4D 测试")
-print(cpp_4d)
-print("\n// LpPool 5D_1 测试")
+print(cpp_4d_1)
+print(cpp_4d_2)
+print(cpp_4d_3)
+print("\n// LpPool 5D 测试")
 print(cpp_5d_1)
-print("\n// LpPool 5D_2 测试")
 print(cpp_5d_2)
-
+print(cpp_5d_3)
 # 保存测试数据到文件
-# with open("lppool_test_LpPool_3D.json", "w") as f:
-#     json.dump(test_3d, f)
-# with open("lppool_test_LpPool_4D.json", "w") as f:
-#     json.dump(test_4d, f)
-# with open("lppool_test_LpPool_5D.json", "w") as f:
-#     json.dump(test_5d, f)
+with open("./lppool_test/lppool_test_LpPool_3D_1.json", "w") as f:
+    json.dump(test_3d_1, f)
 
-with open("lppool_test_LpPool_5D_1.json", "w") as f:
+with open("./lppool_test/lppool_test_LpPool_3D_2.json", "w") as f:
+    json.dump(test_3d_2, f)
+
+with open("./lppool_test/lppool_test_LpPool_3D_3.json", "w") as f:
+    json.dump(test_3d_3, f)
+
+with open("./lppool_test/lppool_test_LpPool_4D_1.json", "w") as f:
+    json.dump(test_4d_1, f)
+with open("./lppool_test/lppool_test_LpPool_4D_2.json", "w") as f:
+    json.dump(test_4d_2, f)
+with open("./lppool_test/lppool_test_LpPool_4D_3.json", "w") as f:
+    json.dump(test_4d_3, f)
+
+
+with open("./lppool_test/lppool_test_LpPool_5D_1.json", "w") as f:
     json.dump(test_5d_1, f)
-with open("lppool_test_LpPool_5D_2.json", "w") as f:
+with open("./lppool_test/lppool_test_LpPool_5D_2.json", "w") as f:
     json.dump(test_5d_2, f)
+with open("./lppool_test/lppool_test_LpPool_5D_3.json", "w") as f:
+    json.dump(test_5d_3, f)
+
 
 print("\n测试数据已保存到json文件，可用于C++测试")
