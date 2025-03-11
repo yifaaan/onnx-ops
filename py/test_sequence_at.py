@@ -19,9 +19,9 @@ def generate_sequence_at_test(test_name="test", seed=None):
     np.random.seed(seed)
     
     # 生成随机数据
-    seq_length = np.random.randint(50, 120)  # 序列长度在3-9之间
+    seq_length = np.random.randint(5, 30)  # 序列长度在3-9之间
     tensor_dims = np.random.randint(2, 5)  # 张量维度在1-3之间
-    tensor_shape = [np.random.randint(40, 80) for _ in range(tensor_dims)]  # 每个维度的大小在2-4之间
+    tensor_shape = [np.random.randint(3, 20) for _ in range(tensor_dims)]  # 每个维度的大小在2-4之间
     
     # 生成序列中的张量
     sequence = []
@@ -77,13 +77,6 @@ def generate_multiple_tests(num_tests=3):
             json.dump(test_data, f, indent=2)
         print(f"Generated test file: {file_path}")
     
-    # 生成示例测试
-    test_name = "Example_Test"
-    test_data = generate_sequence_at_test(test_name)
-    file_path = os.path.join(test_dir, f"sequence_at_test_{test_name}.json")
-    with open(file_path, "w") as f:
-        json.dump(test_data, f, indent=2)
-    print(f"Generated example test file: {file_path}")
 
 def run_sequence_at_test(test_data):
     """

@@ -31,10 +31,10 @@ class Tensor
 public:
     Tensor() = default;
     // ���캯��������������ά��
-    Tensor(const std::vector<int>& dims, const std::vector<T>& data) : dims(dims), data(data)
+    Tensor(const std::vector<int64_t>& dims, const std::vector<T>& data) : dims(dims), data(data)
     {
         size_t total_size = 1;
-        for (int dim : dims)
+        for (auto dim : dims)
         {
             if (dim <= 0)
                 throw std::invalid_argument("Dimensions must be positive");
@@ -43,7 +43,7 @@ public:
         // data.resize(total_size);
     }
     ////
-    /// ����������������е�Ԫ��?
+    /// ����������������е�Ԫ��?
     // T& operator()(const std::vector<int>& indices) {
     //     size_t flat_index = linearIndex(indices);
     //     return data[flat_index];
@@ -54,9 +54,9 @@ public:
     // }
 
     // ��ȡά��
-    const std::vector<int>& getDims() const { return dims; }
+    const std::vector<int64_t>& getDims() const { return dims; }
 
-    // �������?
+    // �������?
     void setRandom()
     {
         std::random_device rd;
@@ -71,7 +71,7 @@ public:
         }
         else if constexpr (std::is_same_v<T, bool>)
         {
-            std::uniform_int_distribution<int> dis(0, 1);
+            std::uniform_int_distribution<int64_t> dis(0, 1);
             for (auto& value : data)
             {
                 value = dis(gen) != 0;
@@ -103,7 +103,7 @@ public:
     }
 
 private:
-    size_t linearIndex(const std::vector<int>& indices) const
+    size_t linearIndex(const std::vector<int64_t>& indices) const
     {
         if (indices.size() != dims.size())
         {
@@ -124,8 +124,8 @@ private:
         return index;
     }
 
-    // �ݹ���?
-    void printRecursive(int dim, std::vector<int> indices) const
+    // �ݹ���?
+    void printRecursive(int dim, std::vector<int64_t> indices) const
     {
         if (dim == dims.size())
         {
@@ -147,7 +147,7 @@ private:
         if (dim == 0)
             std::cout << "\n";
     }
-    std::vector<int> dims; // ������ά��
+    std::vector<int64_t> dims; // ������ά��
     std::vector<T> data;   // ���������ݴ洢
 };
 
@@ -173,13 +173,13 @@ std::vector<Tensor<T>> SequenceConstruct(const Tensor<T>& first, const Tensor<T2
         throw std::invalid_argument("Number of input tensors exceeds maximum limit of 2147483647");
     }
     auto sequence = SequenceConstruct(second, others...);
-    sequence.insert(sequence.begin(), first); // �ڿ�ͷ�����һ������?
+    sequence.insert(sequence.begin(), first); // �ڿ�ͷ�����һ������?
     return sequence;
 }
 
 // SequenceAt����ʵ��
 template <typename T>
-Tensor<T> SequenceAt(const std::vector<Tensor<T>>& input_sequence, int position)
+Tensor<T> SequenceAt(const std::vector<Tensor<T>>& input_sequence, int64_t position)
 {
     size_t n = input_sequence.size();
     // ������
@@ -187,7 +187,7 @@ Tensor<T> SequenceAt(const std::vector<Tensor<T>>& input_sequence, int position)
     {
         position += n;
     }
-    // ����Ƿ�Խ��?
+    // ����Ƿ�Խ��?
     if (position < 0 || position >= n)
     {
         throw std::out_of_range("Position out of range.");
@@ -198,7 +198,7 @@ Tensor<T> SequenceAt(const std::vector<Tensor<T>>& input_sequence, int position)
 
 // SequenceInsert����ʵ��
 template <typename T>
-void SequenceInsert(std::vector<Tensor<T>>& input_sequence, Tensor<T> Insert_Tensor, int position)
+void SequenceInsert(std::vector<Tensor<T>>& input_sequence, Tensor<T> Insert_Tensor, int64_t position)
 {
     size_t n = input_sequence.size();
     if (position < 0)
@@ -218,7 +218,7 @@ void SequenceInsert(std::vector<Tensor<T>>& input_sequence, Tensor<T> Insert_Ten
 
 // SequenceErase����ʵ��
 template <typename T>
-void SequenceErase(std::vector<Tensor<T>>& input_sequence, int position)
+void SequenceErase(std::vector<Tensor<T>>& input_sequence, int64_t position)
 {
     size_t n = input_sequence.size();
     if (position < 0)
