@@ -127,6 +127,61 @@ void test_non_max_suppression(std::string_view file_name)
     // }
 }
 
+void test_sequence_at(std::string_view file_name)
+{
+    // 从文件读取测试数据
+    std::ifstream file(file_name.data());
+    nlohmann::json test_data;
+    file >> test_data;
+
+    // 创建输入序列
+    std::vector<Tensor<float>> input_sequence;
+    for (const auto& tensor_json : test_data["input"]["sequence"])
+    {
+        std::vector<int> shape = tensor_json["shape"].get<std::vector<int>>();
+        std::vector<float> data = tensor_json["data"].get<std::vector<float>>();
+        Tensor<float> tensor(shape, data);
+        input_sequence.push_back(tensor);
+    }
+
+    // 创建position张量
+    int pos = test_data["input"]["position"].get<int>();
+    // Tensor<int> position(std::vector<int>{}, std::vector<int>{pos});
+
+    // 调用SequenceAt实现
+    auto output = SequenceAt(input_sequence, pos);
+
+    // 获取预期输出数据
+    int actual_pos = pos;
+    if (pos < 0)
+    {
+        actual_pos += input_sequence.size();
+    }
+    std::vector<float> expected_data =
+        test_data["input"]["sequence"][actual_pos]["data"].get<std::vector<float>>();
+    std::vector<int64_t> expected_shape =
+        test_data["input"]["sequence"][actual_pos]["shape"].get<std::vector<int64_t>>();
+
+    // 验证输出形状
+    assert(output.getDims().size() == expected_shape.size());
+    for (size_t i = 0; i < output.getDims().size(); ++i)
+    {
+        assert(output.getDims()[i] == expected_shape[i]);
+    }
+
+    // 验证输出数据
+    const auto& output_data = output.getData();
+    assert(output_data.size() == expected_data.size());
+
+    // 验证数据值是否接近，考虑浮点误差
+    for (size_t i = 0; i < output_data.size(); ++i)
+    {
+        assert(std::abs(output_data[i] - expected_data[i]) < 1e-4f);
+    }
+
+    std::cout << "SequenceAt test passed: " << file_name << std::endl;
+}
+
 int main()
 {
     // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_3D_1.json");
@@ -139,10 +194,24 @@ int main()
     // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_5D_2.json");
     // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_5D_3.json");
 
-    test_non_max_suppression(
-        "/home/smooth/dev/onnx-ops/py/nms_test/nms_test_NonMaxSuppression_Test_1.json");
-    test_non_max_suppression(
-        "/home/smooth/dev/onnx-ops/py/nms_test/nms_test_NonMaxSuppression_Test_2.json");
-    test_non_max_suppression(
-        "/home/smooth/dev/onnx-ops/py/nms_test/nms_test_NonMaxSuppression_Test_3.json");
+    // test_non_max_suppression(
+    //     "/home/smooth/dev/onnx-ops/py/nms_test/nms_test_NonMaxSuppression_Test_1.json");
+    // test_non_max_suppression(
+    //     "/home/smooth/dev/onnx-ops/py/nms_test/nms_test_NonMaxSuppression_Test_2.json");
+    // test_non_max_suppression(
+    //     "/home/smooth/dev/onnx-ops/py/nms_test/nms_test_NonMaxSuppression_Test_3.json");
+
+    // 运行SequenceAt测试
+    std::cout << "\nTesting SequenceAt operator..." << std::endl;
+    for (int i = 1; i <= 3; ++i)
+    {
+        std::string filename =
+            std::string(
+                "/root/dev/onnx-ops/py/sequence_at_test/sequence_at_test_SequenceAt_Test_") +
+            std::to_string(i) + ".json";
+        test_sequence_at(filename);
+    }
+    // test_sequence_at("/root/dev/onnx-ops/py/sequence_at_test/sequence_at_test_Example_Test.json");
+
+    return 0;
 }
