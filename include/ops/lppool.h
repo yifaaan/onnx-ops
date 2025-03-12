@@ -17,7 +17,7 @@ public:
     Compute(const std::vector<T>& data, const std::vector<int64_t>& shape,
             const std::vector<int64_t>& kernel_shape, const std::vector<int64_t>& strides = {},
             const std::vector<int64_t>& pads = {}, const std::string& auto_pad = "NOTSET",
-            int64_t p = 2)
+            int64_t p = 2, const std::vector<int64_t>& dilations = {})
     {
         // 验证输入参数
         if (shape.size() < 2)
@@ -55,6 +55,18 @@ public:
                 "LpPool: strides must match the number of spatial dimensions");
         }
 
+        // 设置默认dilations
+        std::vector<int64_t> working_dilations = dilations;
+        if (working_dilations.empty())
+        {
+            working_dilations.resize(spatial_dims, 1);
+        }
+        else if (working_dilations.size() != spatial_dims)
+        {
+            throw std::invalid_argument(
+                "LpPool: dilations must match the number of spatial dimensions");
+        }
+
         // 设置默认pads
         std::vector<int64_t> working_pads = pads;
         if (working_pads.empty() && auto_pad == "NOTSET")
@@ -76,6 +88,7 @@ public:
             int64_t input_dim = shape[i + 2];
             int64_t kernel_dim = kernel_shape[i];
             int64_t stride = working_strides[i];
+            int64_t dilation = working_dilations[i];
             int64_t pad_head = 0;
             int64_t pad_tail = 0;
 
@@ -87,7 +100,8 @@ public:
             else if (auto_pad == "SAME_UPPER" || auto_pad == "SAME_LOWER")
             {
                 int64_t output_dim = (input_dim + stride - 1) / stride;
-                int64_t padding_needed = (output_dim - 1) * stride + kernel_dim - input_dim;
+                int64_t padding_needed =
+                    (output_dim - 1) * stride + (dilation * (kernel_dim - 1) + 1) - input_dim;
                 padding_needed = std::max<int64_t>(0, padding_needed);
 
                 if (auto_pad == "SAME_UPPER")
@@ -107,7 +121,10 @@ public:
                 working_pads[i + spatial_dims] = pad_tail;
             }
 
-            int64_t output_dim = (input_dim + pad_head + pad_tail - kernel_dim) / stride + 1;
+            // 考虑dilation的输出维度计算
+            int64_t dilated_kernel_size = dilation * (kernel_dim - 1) + 1;
+            int64_t output_dim =
+                (input_dim + pad_head + pad_tail - dilated_kernel_size) / stride + 1;
             output_shape.push_back(output_dim);
         }
 
@@ -141,8 +158,7 @@ public:
             output_strides[i] = output_strides[i + 1] * output_shape[i + 1];
         }
 
-        // // 为每个batch和channel并行处理
-        // #pragma omp parallel for collapse(2)
+        // 为每个batch和channel并行处理
         for (int64_t n = 0; n < output_shape[0]; ++n)
         {
             for (int64_t c = 0; c < output_shape[1]; ++c)
@@ -153,8 +169,6 @@ public:
 
                 // 遍历输出的空间位置
                 std::vector<int64_t> out_spatial_coords(spatial_dims, 0);
-
-                // 标记是否已经完成所有空间位置的遍历
                 bool done = false;
 
                 while (!done)
@@ -190,7 +204,9 @@ public:
 
                         for (size_t i = 0; i < spatial_dims; ++i)
                         {
-                            int64_t in_pos = in_window_start[i] + window_coords[i];
+                            // 考虑dilation的位置计算
+                            int64_t in_pos =
+                                in_window_start[i] + window_coords[i] * working_dilations[i];
                             if (in_pos < 0 || in_pos >= shape[i + 2])
                             {
                                 valid = false;

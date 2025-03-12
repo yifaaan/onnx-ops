@@ -6,7 +6,7 @@ import json
 import os
 import random
 import time
-def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, auto_pad="NOTSET", test_name="test"):
+def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, auto_pad="NOTSET", dilations=None, test_name="test"):
     """
     生成LpPool测试用例
     
@@ -17,6 +17,7 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
     strides: 步长，默认与kernel_shape相同
     pads: 填充，默认为0
     auto_pad: 填充模式，默认为"NOTSET"
+    dilations: 膨胀率，默认为1
     test_name: 测试用例名称
     """
     # 根据维度数量生成输入形状
@@ -33,6 +34,8 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
         input_shape = [batch, channels, seq_len]
         if kernel_shape is None:
             kernel_shape = [3]
+        if dilations is None:
+            dilations = [1]
     elif dims == 4:
         batch = random.randint(2, 10)
         channels = random.randint(2, 4)
@@ -41,6 +44,8 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
         input_shape = [batch, channels, height, width]
         if kernel_shape is None:
             kernel_shape = [3, 3]
+        if dilations is None:
+            dilations = [1, 1]
     else:  # dims == 5
         batch = random.randint(2, 10)
         channels = random.randint(2, 4)
@@ -50,6 +55,8 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
         input_shape = [batch, channels, depth, height, width]
         if kernel_shape is None:
             kernel_shape = [2, 2, 2]
+        if dilations is None:
+            dilations = [1, 1, 1]
     
     # 设置默认步长和填充
     spatial_dims = dims - 2  # 减去batch和channel维度
@@ -75,6 +82,7 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
         strides=strides,
         pads=pads,
         p=p,
+        dilations=dilations,
         auto_pad=auto_pad
     )
     
@@ -108,7 +116,8 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
             "strides": strides,
             "pads": pads,
             "p": p,
-            "auto_pad": auto_pad
+            "auto_pad": auto_pad,
+            "dilations": dilations
         }
     }
     
@@ -117,7 +126,7 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
 // Test case for {test_name}
 // Input shape: {input_shape}
 // Output shape: {list(ort_output.shape)}
-// Parameters: kernel_shape={kernel_shape}, strides={strides}, pads={pads}, p={p}, auto_pad="{auto_pad}"
+// Parameters: kernel_shape={kernel_shape}, strides={strides}, pads={pads}, p={p}, auto_pad="{auto_pad}", dilations={dilations}
 TEST(LpPoolTest, {test_name.replace(" ", "_")}) {{
     // 从文件读取测试数据
     std::ifstream file("lppool_test_{test_name.replace(" ", "_")}.json");
@@ -132,10 +141,11 @@ TEST(LpPoolTest, {test_name.replace(" ", "_")}) {{
     std::vector<int64_t> pads = test_data["params"]["pads"].get<std::vector<int64_t>>();
     int64_t p = test_data["params"]["p"];
     std::string auto_pad = test_data["params"]["auto_pad"];
+    std::vector<int64_t> dilations = test_data["params"]["dilations"].get<std::vector<int64_t>>();
     
     // 调用LpPool实现
     auto [output_data, output_shape] = onnx::LpPool<float>::Compute(
-        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p);
+        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p, dilations);
     
     // 验证输出形状
     std::vector<int64_t> expected_shape = test_data["output"]["shape"].get<std::vector<int64_t>>();
@@ -162,7 +172,7 @@ TEST(LpPoolTest, {test_name.replace(" ", "_")}) {{
 // Test case for {test_name}
 // Input shape: {input_shape}
 // Output shape: {list(ort_output.shape)}
-// Parameters: kernel_shape={kernel_shape}, strides={strides}, pads={pads}, p={p}, auto_pad="{auto_pad}"
+// Parameters: kernel_shape={kernel_shape}, strides={strides}, pads={pads}, p={p}, auto_pad="{auto_pad}", dilations={dilations}
 TEST(LpPoolTest, {test_name.replace(" ", "_")}) {{
     // 从文件读取测试数据
     std::ifstream file("lppool_test_{test_name.replace(" ", "_")}.json");
@@ -177,10 +187,11 @@ TEST(LpPoolTest, {test_name.replace(" ", "_")}) {{
     std::vector<int64_t> pads = test_data["params"]["pads"].get<std::vector<int64_t>>();
     int64_t p = test_data["params"]["p"];
     std::string auto_pad = test_data["params"]["auto_pad"];
+    std::vector<int64_t> dilations = test_data["params"]["dilations"].get<std::vector<int64_t>>();
     
     // 调用LpPool实现
     auto [output_data, output_shape] = onnx::LpPool<float>::Compute(
-        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p);
+        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p, dilations);
     
     // 验证输出形状
     std::vector<int64_t> expected_shape = test_data["output"]["shape"].get<std::vector<int64_t>>();

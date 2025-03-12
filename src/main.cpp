@@ -21,21 +21,20 @@ void test_lppool(std::string_view file_name)
         test_data["params"]["kernel_shape"].get<std::vector<int64_t>>();
     std::vector<int64_t> strides = test_data["params"]["strides"].get<std::vector<int64_t>>();
     std::vector<int64_t> pads = test_data["params"]["pads"].get<std::vector<int64_t>>();
+    std::vector<int64_t> dilations = test_data["params"]["dilations"].get<std::vector<int64_t>>();
     int64_t p = test_data["params"]["p"];
     std::string auto_pad = test_data["params"]["auto_pad"];
 
     // 调用LpPool实现
     auto [output_data, output_shape] = onnx::LpPool<float>::Compute(
-        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p);
+        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p, dilations);
 
     // 验证输出形状
     std::vector<int64_t> expected_shape = test_data["output"]["shape"].get<std::vector<int64_t>>();
     assert(output_shape.size() == expected_shape.size());
     for (size_t i = 0; i < output_shape.size(); ++i)
     {
-        {
-            assert(output_shape[i] == expected_shape[i]);
-        }
+        assert(output_shape[i] == expected_shape[i]);
     }
 
     // 验证输出数据
@@ -45,9 +44,7 @@ void test_lppool(std::string_view file_name)
     // 验证数据值是否接近，考虑浮点误差
     for (size_t i = 0; i < output_data.size(); ++i)
     {
-        {
-            assert(std::abs(output_data[i] - expected_data[i]) < 1e-4f);
-        }
+        assert(std::abs(output_data[i] - expected_data[i]) < 1e-4f);
     }
 }
 
@@ -131,21 +128,22 @@ void test_sequence_at(std::string_view file_name)
 {
     // 从文件读取测试数据
     std::ifstream file(file_name.data());
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         std::cerr << "无法打开文件: " << file_name << std::endl;
         return;
     }
 
     nlohmann::json test_data;
     file >> test_data;
-    
+
     // 打印调试信息
     std::cout << "Reading test data from: " << file_name << std::endl;
-    
+
     // 验证JSON结构
-    if (!test_data.contains("input") || 
-        !test_data["input"].contains("sequence") ||
-        !test_data["input"].contains("position")) {
+    if (!test_data.contains("input") || !test_data["input"].contains("sequence") ||
+        !test_data["input"].contains("position"))
+    {
         std::cerr << "JSON格式错误：缺少必要的字段" << std::endl;
         return;
     }
@@ -153,9 +151,11 @@ void test_sequence_at(std::string_view file_name)
     // 创建输入序列
     std::vector<Tensor<float>> input_sequence;
     auto& sequence_array = test_data["input"]["sequence"];
-    
-    for (const auto& tensor_json : sequence_array) {
-        if (!tensor_json.contains("shape") || !tensor_json.contains("data")) {
+
+    for (const auto& tensor_json : sequence_array)
+    {
+        if (!tensor_json.contains("shape") || !tensor_json.contains("data"))
+        {
             std::cerr << "Tensor JSON格式错误" << std::endl;
             continue;
         }
@@ -167,18 +167,24 @@ void test_sequence_at(std::string_view file_name)
         std::vector<float> data;
 
         // 确保shape是数组并且包含数字
-        if (shape_array.is_array()) {
-            for (const auto& dim : shape_array) {
-                if (dim.is_number()) {
+        if (shape_array.is_array())
+        {
+            for (const auto& dim : shape_array)
+            {
+                if (dim.is_number())
+                {
                     shape.push_back(dim.get<int64_t>());
                 }
             }
         }
 
         // 确保data是数组并且包含数字
-        if (data_array.is_array()) {
-            for (const auto& val : data_array) {
-                if (val.is_number()) {
+        if (data_array.is_array())
+        {
+            for (const auto& val : data_array)
+            {
+                if (val.is_number())
+                {
                     data.push_back(val.get<float>());
                 }
             }
@@ -189,22 +195,25 @@ void test_sequence_at(std::string_view file_name)
     }
 
     // 获取position
-    if (!test_data["input"]["position"].is_number()) {
+    if (!test_data["input"]["position"].is_number())
+    {
         std::cerr << "Position必须是数字" << std::endl;
         return;
     }
     int pos = test_data["input"]["position"].get<int>();
-    
+
     // 调用SequenceAt实现
     auto output = SequenceAt(input_sequence, pos);
 
     // 获取预期输出数据
     int actual_pos = pos;
-    if (pos < 0) {
+    if (pos < 0)
+    {
         actual_pos += input_sequence.size();
     }
-    
-    if (actual_pos < 0 || actual_pos >= input_sequence.size()) {
+
+    if (actual_pos < 0 || actual_pos >= input_sequence.size())
+    {
         std::cerr << "Invalid position: " << actual_pos << std::endl;
         return;
     }
@@ -216,7 +225,8 @@ void test_sequence_at(std::string_view file_name)
 
     // 验证输出形状
     assert(output.getDims().size() == expected_shape.size());
-    for (size_t i = 0; i < output.getDims().size(); ++i) {
+    for (size_t i = 0; i < output.getDims().size(); ++i)
+    {
         assert(output.getDims()[i] == expected_shape[i]);
     }
 
@@ -225,7 +235,8 @@ void test_sequence_at(std::string_view file_name)
     assert(output_data.size() == expected_data.size());
 
     // 验证数据值是否接近，考虑浮点误差
-    for (size_t i = 0; i < output_data.size(); ++i) {
+    for (size_t i = 0; i < output_data.size(); ++i)
+    {
         assert(std::abs(output_data[i] - expected_data[i]) < 1e-4f);
     }
 
@@ -236,18 +247,20 @@ void test_sequence_construct(std::string_view file_name)
 {
     // 从文件读取测试数据
     std::ifstream file(file_name.data());
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         std::cerr << "无法打开文件: " << file_name << std::endl;
         return;
     }
 
     nlohmann::json test_data;
     file >> test_data;
-    
+
     std::cout << "Reading test data from: " << file_name << std::endl;
-    
+
     // 验证JSON结构
-    if (!test_data.contains("input") || !test_data["input"].contains("tensors")) {
+    if (!test_data.contains("input") || !test_data["input"].contains("tensors"))
+    {
         std::cerr << "JSON格式错误：缺少必要的字段" << std::endl;
         return;
     }
@@ -255,9 +268,11 @@ void test_sequence_construct(std::string_view file_name)
     // 创建输入张量
     std::vector<Tensor<float>> tensors;
     auto& tensors_array = test_data["input"]["tensors"];
-    
-    for (const auto& tensor_json : tensors_array) {
-        if (!tensor_json.contains("shape") || !tensor_json.contains("data")) {
+
+    for (const auto& tensor_json : tensors_array)
+    {
+        if (!tensor_json.contains("shape") || !tensor_json.contains("data"))
+        {
             std::cerr << "Tensor JSON格式错误" << std::endl;
             continue;
         }
@@ -269,18 +284,24 @@ void test_sequence_construct(std::string_view file_name)
         std::vector<float> data;
 
         // 确保shape是数组并且包含数字
-        if (shape_array.is_array()) {
-            for (const auto& dim : shape_array) {
-                if (dim.is_number()) {
+        if (shape_array.is_array())
+        {
+            for (const auto& dim : shape_array)
+            {
+                if (dim.is_number())
+                {
                     shape.push_back(dim.get<int64_t>());
                 }
             }
         }
 
         // 确保data是数组并且包含数字
-        if (data_array.is_array()) {
-            for (const auto& val : data_array) {
-                if (val.is_number()) {
+        if (data_array.is_array())
+        {
+            for (const auto& val : data_array)
+            {
+                if (val.is_number())
+                {
                     data.push_back(val.get<float>());
                 }
             }
@@ -291,28 +312,32 @@ void test_sequence_construct(std::string_view file_name)
 
     // 调用SequenceConstruct实现
     std::vector<Tensor<float>> output_sequence;
-    if (tensors.size() >= 2) {
+    if (tensors.size() >= 2)
+    {
         output_sequence = SequenceConstruct(tensors[0], tensors[1]);
-        for (size_t i = 2; i < tensors.size(); ++i) {
+        for (size_t i = 2; i < tensors.size(); ++i)
+        {
             output_sequence.push_back(tensors[i]);
         }
     }
 
     // 验证输出序列
     assert(output_sequence.size() == tensors.size());
-    for (size_t i = 0; i < output_sequence.size(); ++i) {
+    for (size_t i = 0; i < output_sequence.size(); ++i)
+    {
         const auto& output_tensor = output_sequence[i];
         const auto& input_tensor = tensors[i];
-        
+
         // 验证形状
         assert(output_tensor.getDims() == input_tensor.getDims());
-        
+
         // 验证数据
         const auto& output_data = output_tensor.getData();
         const auto& input_data = input_tensor.getData();
         assert(output_data.size() == input_data.size());
-        
-        for (size_t j = 0; j < output_data.size(); ++j) {
+
+        for (size_t j = 0; j < output_data.size(); ++j)
+        {
             assert(std::abs(output_data[j] - input_data[j]) < 1e-4f);
         }
     }
@@ -324,20 +349,21 @@ void test_sequence_insert(std::string_view file_name)
 {
     // 从文件读取测试数据
     std::ifstream file(file_name.data());
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         std::cerr << "无法打开文件: " << file_name << std::endl;
         return;
     }
 
     nlohmann::json test_data;
     file >> test_data;
-    
+
     std::cout << "Reading test data from: " << file_name << std::endl;
-    
+
     // 验证JSON结构
-    if (!test_data.contains("input") || 
-        !test_data["input"].contains("sequence") || 
-        !test_data["input"].contains("tensor")) {
+    if (!test_data.contains("input") || !test_data["input"].contains("sequence") ||
+        !test_data["input"].contains("tensor"))
+    {
         std::cerr << "JSON格式错误：缺少必要的字段" << std::endl;
         return;
     }
@@ -345,9 +371,11 @@ void test_sequence_insert(std::string_view file_name)
     // 创建输入序列
     std::vector<Tensor<float>> input_sequence;
     auto& sequence_array = test_data["input"]["sequence"];
-    
-    for (const auto& tensor_json : sequence_array) {
-        if (!tensor_json.contains("shape") || !tensor_json.contains("data")) {
+
+    for (const auto& tensor_json : sequence_array)
+    {
+        if (!tensor_json.contains("shape") || !tensor_json.contains("data"))
+        {
             std::cerr << "Tensor JSON格式错误" << std::endl;
             continue;
         }
@@ -359,18 +387,24 @@ void test_sequence_insert(std::string_view file_name)
         std::vector<float> data;
 
         // 确保shape是数组并且包含数字
-        if (shape_array.is_array()) {
-            for (const auto& dim : shape_array) {
-                if (dim.is_number()) {
+        if (shape_array.is_array())
+        {
+            for (const auto& dim : shape_array)
+            {
+                if (dim.is_number())
+                {
                     shape.push_back(dim.get<int64_t>());
                 }
             }
         }
 
         // 确保data是数组并且包含数字
-        if (data_array.is_array()) {
-            for (const auto& val : data_array) {
-                if (val.is_number()) {
+        if (data_array.is_array())
+        {
+            for (const auto& val : data_array)
+            {
+                if (val.is_number())
+                {
                     data.push_back(val.get<float>());
                 }
             }
@@ -388,18 +422,24 @@ void test_sequence_insert(std::string_view file_name)
     auto data_array = tensor_json["data"];
 
     // 确保shape是数组并且包含数字
-    if (shape_array.is_array()) {
-        for (const auto& dim : shape_array) {
-            if (dim.is_number()) {
+    if (shape_array.is_array())
+    {
+        for (const auto& dim : shape_array)
+        {
+            if (dim.is_number())
+            {
                 shape.push_back(dim.get<int64_t>());
             }
         }
     }
 
     // 确保data是数组并且包含数字
-    if (data_array.is_array()) {
-        for (const auto& val : data_array) {
-            if (val.is_number()) {
+    if (data_array.is_array())
+    {
+        for (const auto& val : data_array)
+        {
+            if (val.is_number())
+            {
                 data.push_back(val.get<float>());
             }
         }
@@ -408,11 +448,14 @@ void test_sequence_insert(std::string_view file_name)
     Tensor<float> insert_tensor(shape, data);
 
     // 获取插入位置（如果有）
-    auto sequence_before = input_sequence;  // 保存原始序列副本
-    if (test_data["input"].contains("position") && !test_data["input"]["position"].is_null()) {
+    auto sequence_before = input_sequence; // 保存原始序列副本
+    if (test_data["input"].contains("position") && !test_data["input"]["position"].is_null())
+    {
         int position = test_data["input"]["position"].get<int>();
         SequenceInsert(input_sequence, insert_tensor, position);
-    } else {
+    }
+    else
+    {
         SequenceInsert(input_sequence, insert_tensor);
     }
 
@@ -426,18 +469,20 @@ void test_sequence_erase(std::string_view file_name)
 {
     // 从文件读取测试数据
     std::ifstream file(file_name.data());
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         std::cerr << "无法打开文件: " << file_name << std::endl;
         return;
     }
 
     nlohmann::json test_data;
     file >> test_data;
-    
+
     std::cout << "Reading test data from: " << file_name << std::endl;
-    
+
     // 验证JSON结构
-    if (!test_data.contains("input") || !test_data["input"].contains("sequence")) {
+    if (!test_data.contains("input") || !test_data["input"].contains("sequence"))
+    {
         std::cerr << "JSON格式错误：缺少必要的字段" << std::endl;
         return;
     }
@@ -445,9 +490,11 @@ void test_sequence_erase(std::string_view file_name)
     // 创建输入序列
     std::vector<Tensor<float>> input_sequence;
     auto& sequence_array = test_data["input"]["sequence"];
-    
-    for (const auto& tensor_json : sequence_array) {
-        if (!tensor_json.contains("shape") || !tensor_json.contains("data")) {
+
+    for (const auto& tensor_json : sequence_array)
+    {
+        if (!tensor_json.contains("shape") || !tensor_json.contains("data"))
+        {
             std::cerr << "Tensor JSON格式错误" << std::endl;
             continue;
         }
@@ -459,18 +506,24 @@ void test_sequence_erase(std::string_view file_name)
         std::vector<float> data;
 
         // 确保shape是数组并且包含数字
-        if (shape_array.is_array()) {
-            for (const auto& dim : shape_array) {
-                if (dim.is_number()) {
+        if (shape_array.is_array())
+        {
+            for (const auto& dim : shape_array)
+            {
+                if (dim.is_number())
+                {
                     shape.push_back(dim.get<int64_t>());
                 }
             }
         }
 
         // 确保data是数组并且包含数字
-        if (data_array.is_array()) {
-            for (const auto& val : data_array) {
-                if (val.is_number()) {
+        if (data_array.is_array())
+        {
+            for (const auto& val : data_array)
+            {
+                if (val.is_number())
+                {
                     data.push_back(val.get<float>());
                 }
             }
@@ -483,10 +536,13 @@ void test_sequence_erase(std::string_view file_name)
     auto sequence_before = input_sequence;
 
     // 获取删除位置（如果有）
-    if (test_data["input"].contains("position") && !test_data["input"]["position"].is_null()) {
+    if (test_data["input"].contains("position") && !test_data["input"]["position"].is_null())
+    {
         int position = test_data["input"]["position"].get<int>();
         SequenceErase(input_sequence, position);
-    } else {
+    }
+    else
+    {
         SequenceErase(input_sequence);
     }
 
@@ -498,15 +554,15 @@ void test_sequence_erase(std::string_view file_name)
 
 int main()
 {
-    // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_3D_1.json");
-    // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_3D_2.json");
-    // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_3D_3.json");
-    // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_4D_1.json");
-    // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_4D_2.json");
-    // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_4D_3.json");
-    // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_5D_1.json");
-    // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_5D_2.json");
-    // test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_5D_3.json");
+    test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_3D_1.json");
+    test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_3D_2.json");
+    test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_3D_3.json");
+    test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_4D_1.json");
+    test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_4D_2.json");
+    test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_4D_3.json");
+    test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_5D_1.json");
+    test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_5D_2.json");
+    test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_5D_3.json");
 
     // test_non_max_suppression(
     //     "/home/smooth/dev/onnx-ops/py/nms_test/nms_test_NonMaxSuppression_Test_1.json");
@@ -516,39 +572,43 @@ int main()
     //     "/home/smooth/dev/onnx-ops/py/nms_test/nms_test_NonMaxSuppression_Test_3.json");
 
     // 运行SequenceAt测试
-    std::cout << "\nTesting SequenceAt operator..." << std::endl;
-    for (int i = 1; i <= 3; ++i)
-    {
-        std::string filename =
-            std::string(
-                "../py/sequence_at_test/sequence_at_test_SequenceAt_Test_") +
-            std::to_string(i) + ".json";
-        test_sequence_at(filename);
-    }
+    // std::cout << "\nTesting SequenceAt operator..." << std::endl;
+    // for (int i = 1; i <= 3; ++i)
+    // {
+    //     std::string filename =
+    //         std::string(
+    //             "../py/sequence_at_test/sequence_at_test_SequenceAt_Test_") +
+    //         std::to_string(i) + ".json";
+    //     test_sequence_at(filename);
+    // }
 
-    // 运行SequenceConstruct测试
-    std::cout << "\nTesting SequenceConstruct operator..." << std::endl;
-    for (int i = 1; i <= 3; ++i) {
-        std::string filename = std::string("../py/sequence_construct_test/sequence_construct_test_SequenceConstruct_Test_") + 
-                             std::to_string(i) + ".json";
-        test_sequence_construct(filename);
-    }
+    // // 运行SequenceConstruct测试
+    // std::cout << "\nTesting SequenceConstruct operator..." << std::endl;
+    // for (int i = 1; i <= 3; ++i) {
+    //     std::string filename =
+    //     std::string("../py/sequence_construct_test/sequence_construct_test_SequenceConstruct_Test_")
+    //     +
+    //                          std::to_string(i) + ".json";
+    //     test_sequence_construct(filename);
+    // }
 
-    // 运行SequenceInsert测试
-    std::cout << "\nTesting SequenceInsert operator..." << std::endl;
-    for (int i = 1; i <= 3; ++i) {
-        std::string filename = std::string("../py/sequence_insert_test/sequence_insert_test_SequenceInsert_Test_") + 
-                             std::to_string(i) + ".json";
-        test_sequence_insert(filename);
-    }
+    // // 运行SequenceInsert测试
+    // std::cout << "\nTesting SequenceInsert operator..." << std::endl;
+    // for (int i = 1; i <= 3; ++i) {
+    //     std::string filename =
+    //     std::string("../py/sequence_insert_test/sequence_insert_test_SequenceInsert_Test_") +
+    //                          std::to_string(i) + ".json";
+    //     test_sequence_insert(filename);
+    // }
 
-    // 运行SequenceErase测试
-    std::cout << "\nTesting SequenceErase operator..." << std::endl;
-    for (int i = 1; i <= 3; ++i) {
-        std::string filename = std::string("../py/sequence_erase_test/sequence_erase_test_SequenceErase_Test_") + 
-                             std::to_string(i) + ".json";
-        test_sequence_erase(filename);
-    }
+    // // 运行SequenceErase测试
+    // std::cout << "\nTesting SequenceErase operator..." << std::endl;
+    // for (int i = 1; i <= 3; ++i) {
+    //     std::string filename =
+    //     std::string("../py/sequence_erase_test/sequence_erase_test_SequenceErase_Test_") +
+    //                          std::to_string(i) + ".json";
+    //     test_sequence_erase(filename);
+    // }
 
     return 0;
 }
