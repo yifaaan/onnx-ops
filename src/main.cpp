@@ -24,10 +24,13 @@ void test_lppool(std::string_view file_name)
     std::vector<int64_t> dilations = test_data["params"]["dilations"].get<std::vector<int64_t>>();
     int64_t p = test_data["params"]["p"];
     std::string auto_pad = test_data["params"]["auto_pad"];
+    bool ceil_mode = test_data["params"].contains("ceil_mode")
+                         ? test_data["params"]["ceil_mode"].get<bool>()
+                         : false;
 
     // 调用LpPool实现
     auto [output_data, output_shape] = onnx::LpPool<float>::Compute(
-        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p, dilations);
+        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p, dilations, ceil_mode);
 
     // 验证输出形状
     std::vector<int64_t> expected_shape = test_data["output"]["shape"].get<std::vector<int64_t>>();
@@ -563,6 +566,12 @@ int main()
     test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_5D_1.json");
     test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_5D_2.json");
     test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_5D_3.json");
+
+    // 测试ceil_mode相关的测试用例
+    test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_3D_Ceil.json");
+    test_lppool("/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_4D_Ceil.json");
+    test_lppool(
+        "/home/smooth/dev/onnx-ops/py/lppool_test/lppool_test_LpPool_4D_Dilation_Ceil.json");
 
     // test_non_max_suppression(
     //     "/home/smooth/dev/onnx-ops/py/nms_test/nms_test_NonMaxSuppression_Test_1.json");

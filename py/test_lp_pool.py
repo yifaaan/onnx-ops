@@ -6,7 +6,7 @@ import json
 import os
 import random
 import time
-def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, auto_pad="NOTSET", dilations=None, test_name="test"):
+def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, auto_pad="NOTSET", dilations=None, ceil_mode=False, test_name="test"):
     """
     生成LpPool测试用例
     
@@ -18,6 +18,7 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
     pads: 填充，默认为0
     auto_pad: 填充模式，默认为"NOTSET"
     dilations: 膨胀率，默认为1
+    ceil_mode: 是否使用向上取整模式，默认为False
     test_name: 测试用例名称
     """
     # 根据维度数量生成输入形状
@@ -26,7 +27,6 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
     # 对于5维: [batch, channels, depth, height, width]
     
     
-    # 为了避免内存问题，对高维数据进行规模控制
     if dims == 3:
         batch = random.randint(2, 10)
         channels = random.randint(2, 4)
@@ -83,7 +83,8 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
         pads=pads,
         p=p,
         dilations=dilations,
-        auto_pad=auto_pad
+        auto_pad=auto_pad,
+        ceil_mode=1 if ceil_mode else 0  # ONNX使用整数0/1表示bool值
     )
     
     graph = helper.make_graph(
@@ -117,7 +118,8 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
             "pads": pads,
             "p": p,
             "auto_pad": auto_pad,
-            "dilations": dilations
+            "dilations": dilations,
+            "ceil_mode": ceil_mode
         }
     }
     
@@ -126,7 +128,7 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
 // Test case for {test_name}
 // Input shape: {input_shape}
 // Output shape: {list(ort_output.shape)}
-// Parameters: kernel_shape={kernel_shape}, strides={strides}, pads={pads}, p={p}, auto_pad="{auto_pad}", dilations={dilations}
+// Parameters: kernel_shape={kernel_shape}, strides={strides}, pads={pads}, p={p}, auto_pad="{auto_pad}", dilations={dilations}, ceil_mode={ceil_mode}
 TEST(LpPoolTest, {test_name.replace(" ", "_")}) {{
     // 从文件读取测试数据
     std::ifstream file("lppool_test_{test_name.replace(" ", "_")}.json");
@@ -142,10 +144,11 @@ TEST(LpPoolTest, {test_name.replace(" ", "_")}) {{
     int64_t p = test_data["params"]["p"];
     std::string auto_pad = test_data["params"]["auto_pad"];
     std::vector<int64_t> dilations = test_data["params"]["dilations"].get<std::vector<int64_t>>();
+    bool ceil_mode = test_data["params"]["ceil_mode"].get<bool>();
     
     // 调用LpPool实现
     auto [output_data, output_shape] = onnx::LpPool<float>::Compute(
-        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p, dilations);
+        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p, dilations, ceil_mode);
     
     // 验证输出形状
     std::vector<int64_t> expected_shape = test_data["output"]["shape"].get<std::vector<int64_t>>();
@@ -172,7 +175,7 @@ TEST(LpPoolTest, {test_name.replace(" ", "_")}) {{
 // Test case for {test_name}
 // Input shape: {input_shape}
 // Output shape: {list(ort_output.shape)}
-// Parameters: kernel_shape={kernel_shape}, strides={strides}, pads={pads}, p={p}, auto_pad="{auto_pad}", dilations={dilations}
+// Parameters: kernel_shape={kernel_shape}, strides={strides}, pads={pads}, p={p}, auto_pad="{auto_pad}", dilations={dilations}, ceil_mode={ceil_mode}
 TEST(LpPoolTest, {test_name.replace(" ", "_")}) {{
     // 从文件读取测试数据
     std::ifstream file("lppool_test_{test_name.replace(" ", "_")}.json");
@@ -188,10 +191,11 @@ TEST(LpPoolTest, {test_name.replace(" ", "_")}) {{
     int64_t p = test_data["params"]["p"];
     std::string auto_pad = test_data["params"]["auto_pad"];
     std::vector<int64_t> dilations = test_data["params"]["dilations"].get<std::vector<int64_t>>();
+    bool ceil_mode = test_data["params"]["ceil_mode"].get<bool>();
     
     // 调用LpPool实现
     auto [output_data, output_shape] = onnx::LpPool<float>::Compute(
-        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p, dilations);
+        input_data, input_shape, kernel_shape, strides, pads, auto_pad, p, dilations, ceil_mode);
     
     // 验证输出形状
     std::vector<int64_t> expected_shape = test_data["output"]["shape"].get<std::vector<int64_t>>();
@@ -293,6 +297,36 @@ test_5d_3, cpp_5d_3 = generate_lppool_test(
     strides=[2, 2, 3],
     test_name="LpPool_5D_3"
 )
+
+# 添加带有ceil_mode=True的测试用例
+test_3d_ceil, cpp_3d_ceil = generate_lppool_test(
+    dims=3,
+    p=2,
+    kernel_shape=[3],
+    strides=[2],
+    ceil_mode=True,
+    test_name="LpPool_3D_Ceil"
+)
+
+test_4d_ceil, cpp_4d_ceil = generate_lppool_test(
+    dims=4,
+    p=2,
+    kernel_shape=[3, 3],
+    strides=[2, 2],
+    ceil_mode=True,
+    test_name="LpPool_4D_Ceil"
+)
+
+test_4d_dilation_ceil, cpp_4d_dilation_ceil = generate_lppool_test(
+    dims=4,
+    p=2,
+    kernel_shape=[3, 3],
+    strides=[2, 2],
+    dilations=[2, 2],
+    ceil_mode=True,
+    test_name="LpPool_4D_Dilation_Ceil"
+)
+
 # 输出C++测试代码
 print("// LpPool 3D 测试")
 print(cpp_3d_1)
@@ -306,6 +340,11 @@ print("\n// LpPool 5D 测试")
 print(cpp_5d_1)
 print(cpp_5d_2)
 print(cpp_5d_3)
+print("\n// LpPool Ceil测试")
+print(cpp_3d_ceil)
+print(cpp_4d_ceil)
+print(cpp_4d_dilation_ceil)
+
 # 保存测试数据到文件
 with open("./lppool_test/lppool_test_LpPool_3D_1.json", "w") as f:
     json.dump(test_3d_1, f)
@@ -331,5 +370,13 @@ with open("./lppool_test/lppool_test_LpPool_5D_2.json", "w") as f:
 with open("./lppool_test/lppool_test_LpPool_5D_3.json", "w") as f:
     json.dump(test_5d_3, f)
 
+with open("./lppool_test/lppool_test_LpPool_3D_Ceil.json", "w") as f:
+    json.dump(test_3d_ceil, f)
+
+with open("./lppool_test/lppool_test_LpPool_4D_Ceil.json", "w") as f:
+    json.dump(test_4d_ceil, f)
+
+with open("./lppool_test/lppool_test_LpPool_4D_Dilation_Ceil.json", "w") as f:
+    json.dump(test_4d_dilation_ceil, f)
 
 print("\n测试数据已保存到json文件，可用于C++测试")
