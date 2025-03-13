@@ -95,6 +95,8 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
     )
     
     model = helper.make_model(graph, producer_name='lppool_test')
+    # 显式设置opset版本为21，确保兼容性
+    model.opset_import[0].version = 21
     
     # 用ONNX Runtime运行模型
     session = ort.InferenceSession(model.SerializeToString())
@@ -327,6 +329,50 @@ test_4d_dilation_ceil, cpp_4d_dilation_ceil = generate_lppool_test(
     test_name="LpPool_4D_Dilation_Ceil"
 )
 
+# 添加更多测试用例，特别关注 ceil_mode 和 dilations 参数
+
+# 添加带有不同 dilations 值的测试用例
+test_4d_dilation_1, cpp_4d_dilation_1 = generate_lppool_test(
+    dims=4,
+    p=2,
+    kernel_shape=[3, 3],
+    strides=[2, 2],
+    dilations=[2, 2],
+    ceil_mode=False,
+    test_name="LpPool_4D_Dilation_1"
+)
+
+test_4d_dilation_2, cpp_4d_dilation_2 = generate_lppool_test(
+    dims=4,
+    p=2,
+    kernel_shape=[3, 3],
+    strides=[1, 1],
+    dilations=[3, 3],
+    ceil_mode=False,
+    test_name="LpPool_4D_Dilation_2"
+)
+
+# 添加带有不同 ceil_mode 值的测试用例
+test_3d_ceil_dilation, cpp_3d_ceil_dilation = generate_lppool_test(
+    dims=3,
+    p=2,
+    kernel_shape=[3],
+    strides=[2],
+    dilations=[2],
+    ceil_mode=True,
+    test_name="LpPool_3D_Ceil_Dilation"
+)
+
+test_5d_ceil_dilation, cpp_5d_ceil_dilation = generate_lppool_test(
+    dims=5,
+    p=3,  # 使用L3范数
+    kernel_shape=[2, 2, 2],
+    strides=[2, 2, 2],
+    dilations=[2, 2, 2],
+    ceil_mode=True,
+    test_name="LpPool_5D_Ceil_Dilation"
+)
+
 # 输出C++测试代码
 print("// LpPool 3D 测试")
 print(cpp_3d_1)
@@ -344,6 +390,14 @@ print("\n// LpPool Ceil测试")
 print(cpp_3d_ceil)
 print(cpp_4d_ceil)
 print(cpp_4d_dilation_ceil)
+
+# 打印新增测试用例的C++代码
+print("\n// LpPool Dilation测试")
+print(cpp_4d_dilation_1)
+print(cpp_4d_dilation_2)
+print("\n// LpPool Ceil和Dilation组合测试")
+print(cpp_3d_ceil_dilation)
+print(cpp_5d_ceil_dilation)
 
 # 保存测试数据到文件
 with open("./lppool_test/lppool_test_LpPool_3D_1.json", "w") as f:
@@ -378,5 +432,17 @@ with open("./lppool_test/lppool_test_LpPool_4D_Ceil.json", "w") as f:
 
 with open("./lppool_test/lppool_test_LpPool_4D_Dilation_Ceil.json", "w") as f:
     json.dump(test_4d_dilation_ceil, f)
+
+with open("./lppool_test/lppool_test_LpPool_4D_Dilation_1.json", "w") as f:
+    json.dump(test_4d_dilation_1, f)
+
+with open("./lppool_test/lppool_test_LpPool_4D_Dilation_2.json", "w") as f:
+    json.dump(test_4d_dilation_2, f)
+
+with open("./lppool_test/lppool_test_LpPool_3D_Ceil_Dilation.json", "w") as f:
+    json.dump(test_3d_ceil_dilation, f)
+
+with open("./lppool_test/lppool_test_LpPool_5D_Ceil_Dilation.json", "w") as f:
+    json.dump(test_5d_ceil_dilation, f)
 
 print("\n测试数据已保存到json文件，可用于C++测试")
