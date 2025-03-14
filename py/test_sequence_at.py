@@ -6,7 +6,7 @@ import time
 import json
 import os
 
-def generate_sequence_at_test(test_name="test", seed=None):
+def generate_sequence_at_test(test_name="test", seed=None, seq_length=None, tensor_dims=None, tensor_shape=None, position=None):
     """
     生成SequenceAt测试用例
     
@@ -19,9 +19,17 @@ def generate_sequence_at_test(test_name="test", seed=None):
     np.random.seed(seed)
     
     # 生成随机数据
-    seq_length = np.random.randint(5, 30)  # 序列长度在3-9之间
-    tensor_dims = np.random.randint(2, 5)  # 张量维度在1-3之间
-    tensor_shape = [np.random.randint(3, 20) for _ in range(tensor_dims)]  # 每个维度的大小在2-4之间
+    # seq_length = np.random.randint(5, 30)  # 序列长度在3-9之间
+    # tensor_dims = np.random.randint(2, 5)  # 张量维度在1-3之间
+    # tensor_shape = [np.random.randint(3, 20) for _ in range(tensor_dims)]  # 每个维度的大小在2-4之间
+    if seq_length is None:
+        seq_length = 200
+    if tensor_dims is None:
+        tensor_dims = 2
+    if tensor_shape is None:
+        tensor_shape = [80, 120]
+    if position is None:
+        position = 0
     
     # 生成序列中的张量
     sequence = []
@@ -34,10 +42,10 @@ def generate_sequence_at_test(test_name="test", seed=None):
     
     # 生成position参数
     # 有50%的概率生成负索引
-    if np.random.random() < 0.5:
-        position = np.random.randint(-seq_length, 0)
-    else:
-        position = np.random.randint(0, seq_length)
+    # if np.random.random() < 0.5:
+    #     position = np.random.randint(-seq_length, 0)
+    # else:
+    #     position = np.random.randint(0, seq_length)
     
     # 创建测试数据
     test_data = {
@@ -61,18 +69,16 @@ def generate_multiple_tests(num_tests=3):
     生成多个测试用例
     """
     # 创建测试数据目录
-    test_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "py", "sequence_at_test")
+    test_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "jsons", "sequence_at")
     os.makedirs(test_dir, exist_ok=True)
     
-    all_test_data = []
     
     for i in range(num_tests):
         test_name = f"SequenceAt_Test_{i+1}"
         test_data = generate_sequence_at_test(test_name)
-        all_test_data.append(test_data)
         
         # 保存测试数据到JSON文件
-        file_path = os.path.join(test_dir, f"sequence_at_test_{test_name}.json")
+        file_path = os.path.join(test_dir, f"{test_name}.json")
         with open(file_path, "w") as f:
             json.dump(test_data, f, indent=2)
         print(f"Generated test file: {file_path}")
