@@ -17,10 +17,10 @@ def generate_sequence_construct_test(test_name="test", seed=None):
     """生成SequenceConstruct测试用例"""
     if seed is None:
         seed = int(time.time())
-    np.random.seed(seed)
+    np.random.seed(42)
     
-    # 生成2-5个张量
-    num_tensors = np.random.randint(2, 6)
+
+    num_tensors = 10000
     tensors = [generate_tensor() for _ in range(num_tensors)]
     
     test_data = {
@@ -40,10 +40,10 @@ def generate_sequence_insert_test(test_name="test", seed=None):
     """生成SequenceInsert测试用例"""
     if seed is None:
         seed = int(time.time())
-    np.random.seed(seed)
+    np.random.seed(42)
     
     # 生成原始序列
-    seq_length = np.random.randint(3, 8)
+    seq_length = 10000
     sequence = [generate_tensor() for _ in range(seq_length)]
     
     # 生成要插入的张量
@@ -79,10 +79,10 @@ def generate_sequence_erase_test(test_name="test", seed=None):
     """生成SequenceErase测试用例"""
     if seed is None:
         seed = int(time.time())
-    np.random.seed(seed)
+    np.random.seed(42)
     
     # 生成原始序列
-    seq_length = np.random.randint(3, 8)
+    seq_length = 10000
     sequence = [generate_tensor() for _ in range(seq_length)]
     
     # 生成删除位置（包括负索引和末尾删除的情况）

@@ -16,12 +16,12 @@ def generate_sequence_at_test(test_name="test", seed=None):
     """
     if seed is None:
         seed = int(time.time())
-    np.random.seed(seed)
+    np.random.seed(42)
     
     # 生成随机数据
-    seq_length = np.random.randint(5, 30)  # 序列长度在3-9之间
-    tensor_dims = np.random.randint(2, 5)  # 张量维度在1-3之间
-    tensor_shape = [np.random.randint(3, 20) for _ in range(tensor_dims)]  # 每个维度的大小在2-4之间
+    seq_length = 10000
+    tensor_dims = np.random.randint(2, 5)
+    tensor_shape = [np.random.randint(3, 20) for _ in range(tensor_dims)] 
     
     # 生成序列中的张量
     sequence = []

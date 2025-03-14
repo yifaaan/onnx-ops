@@ -3,7 +3,6 @@
 #include "utils.h"
 #include <cassert>
 #include <functional>
-#include <iostream>
 #include <stdexcept>
 #include <string>
 namespace onnx

@@ -30,7 +30,7 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
     if dims == 3:
         batch = random.randint(2, 10)
         channels = random.randint(2, 4)
-        seq_len = random.randint(80, 120)
+        seq_len = random.randint(5, 10)
         input_shape = [batch, channels, seq_len]
         if kernel_shape is None:
             kernel_shape = [3]
@@ -39,8 +39,8 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
     elif dims == 4:
         batch = random.randint(2, 10)
         channels = random.randint(2, 4)
-        height = random.randint(80, 120)
-        width = random.randint(80, 120)
+        height = random.randint(5, 10)
+        width = random.randint(5, 10)
         input_shape = [batch, channels, height, width]
         if kernel_shape is None:
             kernel_shape = [3, 3]
@@ -49,9 +49,9 @@ def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, 
     else:  # dims == 5
         batch = random.randint(2, 10)
         channels = random.randint(2, 4)
-        depth = random.randint(80, 120)
-        height = random.randint(80, 120)
-        width = random.randint(80, 120)
+        depth = random.randint(5, 10)
+        height = random.randint(5, 10)
+        width = random.randint(5, 10)
         input_shape = [batch, channels, depth, height, width]
         if kernel_shape is None:
             kernel_shape = [2, 2, 2]

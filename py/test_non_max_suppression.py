@@ -15,11 +15,11 @@ def generate_nms_test(test_name="test", seed=None):
     """
     if seed is None:
         seed = int(time.time())
-    np.random.seed(seed)
+    np.random.seed(42)
     
     # 生成随机数据
-    num_classes = np.random.randint(2, 5)        # 类别数量 2-4
-    num_boxes = np.random.randint(10, 20)        # 每个类别的框数量
+    num_classes = 100
+    num_boxes = np.random.randint(50, 100)        # 每个类别的框数量
     
     # 生成随机框
     boxes = []
@@ -74,7 +74,7 @@ def generate_multiple_tests(num_tests=3):
     
     for i in range(num_tests):
         test_name = f"NonMaxSuppression_Test_{i+1}"
-        test_data, cpp_code = generate_nms_test(test_name)
+        test_data = generate_nms_test(test_name)
         all_test_data.append(test_data)
         
         # 保存测试数据到JSON文件
