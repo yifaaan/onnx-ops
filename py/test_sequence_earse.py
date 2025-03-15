@@ -18,7 +18,7 @@ tensor_dims: 张量维度
 tensor_shape: 张量形状
 position: 位置索引
 """
-def generate_sequence_at_test(test_name="test", seed=None, seq_length=20, tensor_dims=3, tensor_shape=[3, 20, 50], position=0):
+def generate_sequence_erase_test(test_name="test", seed=None, seq_length=20, tensor_dims=3, tensor_shape=[3, 20, 50], position=0):
     if seed is None:
         seed = int(time.time())
     np.random.seed(seed)
@@ -48,8 +48,7 @@ def generate_sequence_at_test(test_name="test", seed=None, seq_length=20, tensor
             "tensor_shape": tensor_shape
         },
         "output": {
-            "tensor": [],
-            "shape": []
+            "len": []
         }
     }
     
@@ -60,15 +59,15 @@ def generate_multiple_tests(num_tests=3):
     生成多个测试用例
     """
     # 创建测试数据目录
-    test_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "jsons", "sequence_at")
+    test_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "jsons", "sequence_erase")
     os.makedirs(test_dir, exist_ok=True)
     
     files = []
     all_test_data = []
     for i in range(num_tests):
         test_name = f"test_{i+1}"
-        test_data = generate_sequence_at_test(test_name)
-
+        # test_data = generate_sequence_erase_test(test_name, seq_length=20, tensor_dims=1, tensor_shape=[1], position=0)
+        test_data = generate_sequence_erase_test(test_name)
         all_test_data.append(test_data)
         # 保存测试数据到JSON文件
         file_path = os.path.join(test_dir, f"{test_name}.json")
@@ -79,7 +78,7 @@ def generate_multiple_tests(num_tests=3):
     return files, all_test_data
     
 
-def run_sequence_at_test(test_data):
+def run_sequence_erase_test(test_data):
     """
     使用ONNX Runtime运行SequenceAt测试
     
@@ -97,7 +96,7 @@ def run_sequence_at_test(test_data):
     
     # 创建节点
     node = helper.make_node(
-        'SequenceAt',
+        'SequenceErase',
         inputs=['input_sequence', 'position'],
         outputs=['output']
     )
@@ -111,18 +110,14 @@ def run_sequence_at_test(test_data):
     )
     
     # 创建输出
-    output_tensor = helper.make_tensor_value_info(
-        'output',
-        TensorProto.FLOAT,
-        sequence[0]["shape"]
-    )
+    output_sequence = helper.make_value_info('output', sequence_type, None)
     
     # 创建图和模型
     graph = helper.make_graph(
         [node],
-        'sequence_at_test',
+        'sequence_erase_test',
         [input_sequence, position_tensor],
-        [output_tensor]
+        [output_sequence]
     )
     
     model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 11)])
@@ -131,9 +126,12 @@ def run_sequence_at_test(test_data):
     session = ort.InferenceSession(model.SerializeToString())
     
     # 准备输入数据
-    input_sequence_data = [np.array(tensor["data"], dtype=np.float32) for tensor in sequence]
+    input_sequence_data = [np.array(data_and_shape["data"], dtype=np.float32) for data_and_shape in sequence]
     position_data = np.array(position, dtype=np.int32)
     
+    # print(input_sequence_data)
+    # print(position_data)
+    # print("")
     # 运行推理
     output = session.run(
         None,
@@ -142,8 +140,11 @@ def run_sequence_at_test(test_data):
             'position': position_data
         }
     )[0]
-    
-    return output
+
+    import copy
+    output_copy = copy.deepcopy(output)
+
+    return output_copy
 
 # 运行测试生成
 if __name__ == "__main__":
@@ -157,15 +158,16 @@ if __name__ == "__main__":
     # print(f"张量形状: {test_data['params']['tensor_shape']}")
     # print(f"位置索引: {test_data['input']['position']}")
     for file, test_data in zip(files, all_test_data):
-        output = run_sequence_at_test(test_data)
-        shape = output.shape
-
+        out = run_sequence_erase_test(test_data)
+        o = []
+        for tensor in out:
+            o.append({"data": tensor.tolist(), "shape": tensor.shape})
+        s = len(out)
         # 读取现有的JSON文件
         with open(file, "r") as f:
             existing_data = json.load(f)
-        existing_data["output"]["tensor"] = output.tolist()
-        existing_data["output"]["shape"] = shape
-
+        existing_data["output"]["sequence"] = o
+        existing_data["output"]["len"] = s
         # 保存更新后的JSON文件
         with open(file, "w") as f:
             json.dump(existing_data, f, indent=2)
