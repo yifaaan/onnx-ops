@@ -1,181 +1,180 @@
-#include <algorithm>
-#include <iostream>
-#include <unordered_map>
 #include <vector>
+#include <iostream>
 
-struct Box
-{
-    int class_id;
-    float x1, y1, x2, y2;
-    float score;
 
-    Box(int cls, float x1, float y1, float x2, float y2, float s)
-        : class_id(cls), x1(x1), y1(y1), x2(x2), y2(y2), score(s)
-    {
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½IOU
+float calculateIOU(const std::vector<float>& box1,
+    const std::vector<float>& box2,
+    bool center_point_box) {
+    float x1, y1, x2, y2;  // box1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    float x1_, y1_, x2_, y2_;  // box2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+
+    // ï¿½ï¿½ï¿½Ý¸ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    if (center_point_box) {
+        // [x_center, y_center, width, height] ×ªï¿½ï¿½Îª [x1, y1, x2, y2]
+        float w1 = box1[2], h1 = box1[3];
+        if (w1 < 0 || h1 < 0) return 0.0f;  // ï¿½ï¿½ï¿½È»ï¿½ß¶ï¿½Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½
+        x1 = box1[0] - w1 / 2;
+        y1 = box1[1] - h1 / 2;
+        x2 = box1[0] + w1 / 2;
+        y2 = box1[1] + h1 / 2;
+
+        float w2 = box2[2], h2 = box2[3];
+        if (w2 < 0 || h2 < 0) return 0.0f;  // ï¿½ï¿½ï¿½È»ï¿½ß¶ï¿½Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½
+        x1_ = box2[0] - w2 / 2;
+        y1_ = box2[1] - h2 / 2;
+        x2_ = box2[0] + w2 / 2;
+        y2_ = box2[1] + h2 / 2;
     }
-};
+    else {
+        // [y1, x1, y2, x2] ï¿½ï¿½Ê½
+        x1 = box1[1]; y1 = box1[0];
+        x2 = box1[3]; y2 = box1[2];
+        x1_ = box2[1]; y1_ = box2[0];
+        x2_ = box2[3]; y2_ = box2[2];
+    }
 
-// IoU¼ÆËãº¯Êý
-float computeIoU(const Box& box1, const Box& box2)
-{
-    // ¼ÆËã½»¼¯²¿·Ö
-    float inter_x1 = std::max(box1.x1, box2.x1);
-    float inter_y1 = std::max(box1.y1, box2.y1);
-    float inter_x2 = std::min(box1.x2, box2.x2);
-    float inter_y2 = std::min(box1.y2, box2.y2);
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½
+    if (x1 > x2 || y1 > y2 || x1_ > x2_ || y1_ > y2_) {
+        return 0.0f;  // ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    }
 
-    float inter_width = std::max(0.0f, inter_x2 - inter_x1);
-    float inter_height = std::max(0.0f, inter_y2 - inter_y1);
-    float intersection = inter_width * inter_height;
+    // ï¿½ï¿½ï¿½ã½»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    float xi1 = std::max(x1, x1_);  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï½ï¿½x
+    float yi1 = std::max(y1, y1_);  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï½ï¿½y
+    float xi2 = std::min(x2, x2_);  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â½ï¿½x
+    float yi2 = std::min(y2, y2_);  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â½ï¿½y
 
-    // ¼ÆËã²¢¼¯²¿·Ö
-    float box1_area = (box1.x2 - box1.x1) * (box1.y2 - box1.y1);
-    float box2_area = (box2.x2 - box2.x1) * (box2.y2 - box2.y1);
+    // ï¿½ï¿½ï¿½ã½»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    float inter_width = std::max(0.0f, xi2 - xi1);
+    float inter_height = std::max(0.0f, yi2 - yi1);
+    float inter_area = inter_width * inter_height;
 
-    float union_area = box1_area + box2_area - intersection;
+    // ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    float box1_area = (x2 - x1) * (y2 - y1);
+    float box2_area = (x2_ - x1_) * (y2_ - y1_);
 
-    return intersection / union_area; // IoU
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½Ð§
+    if (box1_area <= 0.0f || box2_area <= 0.0f) {
+        return 0.0f;  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    }
+
+    // ï¿½ï¿½ï¿½ã²¢ï¿½ï¿½ï¿½ï¿½ï¿½
+    float union_area = box1_area + box2_area - inter_area;
+
+    // ï¿½ï¿½é²¢ï¿½ï¿½ï¿½ï¿½ï¿½
+    if (union_area <= 0.0f) {
+        return 0.0f;  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    }
+
+    // ï¿½ï¿½ï¿½ï¿½IOU
+    float iou = inter_area / union_area;
+
+    // È·ï¿½ï¿½IOUï¿½ï¿½[0,1]ï¿½ï¿½Î§ï¿½ï¿½
+    if (iou < 0.0f || iou > 1.0f) {
+        std::cerr << "Invalid IOU: " << iou << ", inter_area: " << inter_area
+            << ", union_area: " << union_area << std::endl;
+        return 0.0f;
+    }
+
+    return iou;
 }
 
-std::vector<Box> multiClassNMS(std::vector<Box>& boxes, float iou_threshold)
-{
 
-    std::unordered_map<int, std::vector<Box>> class_groups;
-    for (const auto& box : boxes)
-    { // ½«²»Í¬Àà±ðµÄÊÂÎï·Ö¿ª
-        class_groups[box.class_id].push_back(box);
+
+
+
+
+std::vector<std::vector<int64_t>> nonMaxSuppression(
+    const std::vector<std::vector<std::vector<float>>>& boxes,
+    const std::vector<std::vector<std::vector<float>>>& scores,
+    int64_t max_output_boxes_per_class = 0,
+    float iou_threshold = 0.0f,
+    float score_threshold = 0.0f,
+    int center_point_box = 0) {
+
+    if (boxes.empty() || scores.empty()) {
+        std::cerr << "Error: Empty input tensors" << std::endl;
+        return {};
+    }
+    size_t num_batches = boxes.size();
+    if (scores.size() != num_batches) {
+        std::cerr << "Error: Mismatch in num_batches" << std::endl;
+        return {};
+    }
+    if (boxes[0].empty() || scores[0].empty()) {
+        std::cerr << "Error: Empty spatial dimension or classes" << std::endl;
+        return {};
+    }
+    size_t spatial_dimension = boxes[0].size();
+    size_t num_classes = scores[0].size();
+    for (const auto& batch : boxes) {
+        if (batch.size() != spatial_dimension || batch[0].size() != 4) {
+            std::cerr << "Error: Invalid boxes dimension" << std::endl;
+            return {};
+        }
+    }
+    for (const auto& batch : scores) {
+        if (batch.size() != num_classes || batch[0].size() != spatial_dimension) {
+            std::cerr << "Error: Invalid scores dimension" << std::endl;
+            return {};
+        }
     }
 
-    std::vector<Box> result;
+    std::vector<std::vector<int64_t>> selected_indices;
 
-    for (auto& entry : class_groups)
-    {
-        int cls = entry.first;
-        std::vector<Box>& group = entry.second;
+    for (size_t batch_idx = 0; batch_idx < num_batches; batch_idx++) {
+        for (size_t class_idx = 0; class_idx < num_classes; class_idx++) {
+            std::vector<std::pair<float, size_t>> score_pairs;
 
-        // ÅÅÐòÂß¼­
-        std::sort(group.begin(), group.end(),
-                  [](const Box& a, const Box& b) { return a.score > b.score; });
-
-        std::vector<Box> temp;
-        while (!group.empty())
-        {
-            Box selected = group.front();
-            temp.push_back(selected);
-            group.erase(group.begin());
-
-            auto it = group.begin();
-            while (it != group.end())
-            {
-                if (computeIoU(selected, *it) > iou_threshold)
-                {
-                    it = group.erase(it);
+            for (size_t box_idx = 0; box_idx < spatial_dimension; box_idx++) {
+                float score = scores[batch_idx][class_idx][box_idx];
+                if (score >= score_threshold) {
+                    score_pairs.emplace_back(score, box_idx);
                 }
-                else
-                {
-                    ++it;
+            }
+
+            std::sort(score_pairs.begin(), score_pairs.end(),
+                [](const auto& a, const auto& b) { return a.first > b.first; });
+
+            std::vector<bool> suppressed(spatial_dimension, false);
+            size_t selected_count = 0;
+
+            for (size_t i = 0; i < score_pairs.size() &&
+                (max_output_boxes_per_class == 0 || selected_count < max_output_boxes_per_class); i++) {
+                if (suppressed[score_pairs[i].second]) continue;
+
+                size_t curr_idx = score_pairs[i].second;
+                selected_indices.push_back({ (int64_t)batch_idx, (int64_t)class_idx, (int64_t)curr_idx });
+                selected_count++;
+
+                for (size_t j = i + 1; j < score_pairs.size(); j++) {
+                    if (suppressed[score_pairs[j].second]) continue;
+
+                    float iou = calculateIOU(
+                        boxes[batch_idx][curr_idx],
+                        boxes[batch_idx][score_pairs[j].second],
+                        center_point_box != 0
+                    );
+
+                    // ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+                    // std::cout << "Comparing box " << curr_idx << " (score: " << score_pairs[i].first
+                    //     << ") with box " << score_pairs[j].second << " (score: " << score_pairs[j].first
+                    //     << "), IOU: " << iou << std::endl;
+
+                    if (iou > iou_threshold) {
+                        suppressed[score_pairs[j].second] = true;
+                        // std::cout << "Comparing box " << curr_idx << " (score: " << score_pairs[i].first
+                        //     << ") with box " << score_pairs[j].second << " (score: " << score_pairs[j].first
+                        //     << "), IOU: " << iou << std::endl;
+                        // std::cout << "Suppressing box " << score_pairs[j].second << std::endl;
+                    }
                 }
             }
         }
-        result.insert(result.end(), temp.begin(), temp.end());
     }
 
-    // È«¾ÖÅÅÐò
-    std::sort(result.begin(), result.end(),
-              [](const Box& a, const Box& b) { return a.score > b.score; });
-
-    return result;
+    return selected_indices;
 }
 
-// ´òÓ¡¿òµÄ½á¹û
-void printBoxes(const std::vector<Box>& boxes)
-{
-    for (const auto& box : boxes)
-    {
-        std::cout << "Box: [" << box.class_id << "," << box.x1 << ", " << box.y1 << ", " << box.x2
-                  << ", " << box.y2 << "], Score: " << box.score << std::endl;
-    }
-}
 
-// int main() {
-
-//     //²âÊÔÓÃÀý1
-//     std::cout << "CASE 1:" << std::endl;
-//     std::vector<Box> boxes1 = {
-//         Box(0, 50,50,200,200,0.9),
-//         Box(0, 60,60,210,210,0.85),
-//         Box(1, 250,250,400,400,0.8),
-//         Box(0, 55,55,195,195,0.7),
-//         Box(1, 255,255,405,405,0.75)
-//     };
-
-//     auto result1 = multiClassNMS(boxes1, 0.5);
-//     // ´òÓ¡½á¹û
-
-//     printBoxes(result1);
-//     // Ô¤ÆÚÊä³ö£º
-//     // Class 0: [50,50,200,200] 0.9
-//     // Class 1: [250,250,400,400] 0.8
-
-//     //²âÊÔÓÃÀý2
-//     std::cout << "CASE 2:" << std::endl;
-//     std::vector<Box> boxes2 = {
-//         // Àà±ð0
-//         Box(0, 100, 120, 150, 180, 0.95),
-//         Box(0, 110, 130, 160, 185, 0.88),
-
-//         // Àà±ð1
-//         Box(1, 200, 300, 400, 450, 0.92),
-//         Box(1, 210, 310, 390, 440, 0.85),
-
-//         // Àà±ð2
-//         Box(2, 50, 80, 120, 200, 0.90),
-//         Box(2, 60, 85, 115, 195, 0.82)
-//     };
-//     auto result2 = multiClassNMS(boxes2, 0.5);
-//     printBoxes(result2);
-//     // Ô¤ÆÚÊä³ö£º
-//     /*  Class 0: [100, 120, 150, 180] 0.95
-//         Class 1 : [200, 300, 400, 450] 0.92
-//         Class 2 : [50, 80, 120, 200] 0.90*/
-//     //²âÊÔÓÃÀý3
-//     std::cout << "CASE 3:" << std::endl;
-//     std::vector<Box> boxes3 = {
-//         // Àà±ð3
-//         Box(3, 10,10,30,30,0.91),
-//         Box(3, 15,15,35,35,0.89),
-//         Box(3, 100,100,120,120,0.88),
-
-//         // Àà±ð4
-//         Box(4, 200,200,220,220,0.87),
-//         Box(4, 202,202,222,222,0.86)
-//     };
-
-//     auto result3 = multiClassNMS(boxes3, 0.4);
-//     printBoxes(result3);
-//     //Class 3: [10, 10, 30, 30] 0.91
-//     //Class 3: [15, 15, 35, 35] 0.89
-//     //Class 3 : [100, 100, 120, 120] 0.88
-//     //Class 4 : [200, 200, 220, 220] 0.87
-
-//     //²âÊÔÓÃÀý4
-//     std::cout << "CASE 4:" << std::endl;
-//     std::vector<Box> boxes4 = {
-//         // Àà±ð5
-//         Box(5, 50,50,250,250,0.93),
-
-//         // Àà±ð6
-//         Box(6, 60,60,240,240,0.91),
-
-//         // Í¬ÀàÖØµþ
-//         Box(6, 200,200,300,300,0.88),
-//         Box(6, 210,210,310,310,0.85)
-//     };
-
-//     auto result4 = multiClassNMS(boxes4, 0.5);
-//     printBoxes(result4);
-//     /*Class 5: [50, 50, 250, 250] 0.93
-//     Class 6 : [60, 60, 240, 240] 0.91
-//     Class 6 : [200, 200, 300, 300] 0.88*/
-
-// }

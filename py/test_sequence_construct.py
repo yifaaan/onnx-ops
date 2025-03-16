@@ -128,7 +128,7 @@ def run_sequence_construct_test(test_data):
         [output_sequence]
     )
     
-    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 11)])
+    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 18)])
     
     # 运行模型
     session = ort.InferenceSession(model.SerializeToString())

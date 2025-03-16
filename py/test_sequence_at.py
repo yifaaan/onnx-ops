@@ -18,7 +18,7 @@ tensor_dims: 张量维度
 tensor_shape: 张量形状
 position: 位置索引
 """
-def generate_sequence_at_test(test_name="test", seed=None, seq_length=20, tensor_dims=3, tensor_shape=[3, 20, 50], position=0):
+def generate_sequence_at_test(test_name="test", seed=None, seq_length=20, tensor_dims=4, tensor_shape=[3, 4, 5, 6], position=0):
     if seed is None:
         seed = int(time.time())
     np.random.seed(seed)
@@ -125,7 +125,7 @@ def run_sequence_at_test(test_data):
         [output_tensor]
     )
     
-    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 11)])
+    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 18)])
     
     # 运行模型
     session = ort.InferenceSession(model.SerializeToString())

@@ -4,26 +4,27 @@
 
 #include <memory>
 
-struct Box
-{
-    int class_id;
-    float x1, y1, x2, y2;
-    float score;
 
-    Box(int cls, float x1, float y1, float x2, float y2, float s)
-        : class_id(cls), x1(x1), y1(y1), x2(x2), y2(y2), score(s)
-    {
-    }
-};
 
-std::vector<Box> multiClassNMS(std::vector<Box>& boxes, float iou_threshold);
 
-float computeIoU(const Box& box1, const Box& box2);
 
 #include <iostream>
 #include <random>
 #include <stdexcept>
 #include <vector>
+
+
+std::vector<std::vector<int64_t>> nonMaxSuppression(
+    const std::vector<std::vector<std::vector<float>>>& boxes,
+    const std::vector<std::vector<std::vector<float>>>& scores,
+    int64_t max_output_boxes_per_class = 0,
+    float iou_threshold = 0.0f,
+    float score_threshold = 0.0f,
+    int center_point_box = 0);
+
+float calculateIOU(const std::vector<float>& box1,
+    const std::vector<float>& box2,
+    bool center_point_box);
 
 template <typename T>
 class Tensor
