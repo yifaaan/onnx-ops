@@ -4,7 +4,9 @@ from onnx import helper, TensorProto
 import onnxruntime as ort
 import json
 import os
+import onnx.reference.ops.op_lp_pool
 import random
+
 import time
 def generate_lppool_test(dims, p=2, kernel_shape=None, strides=None, pads=None, auto_pad="NOTSET", dilations=None, ceil_mode=False, test_name="test"):
     """

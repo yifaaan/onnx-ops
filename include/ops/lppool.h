@@ -191,7 +191,6 @@ private:
                     std::vector<int64_t> in_start(spatial_dims);
                     for (size_t i = 0; i < spatial_dims; ++i)
                     {
-                        // 第i个空间维度上的左边
                         in_start[i] = out_coords[i] * strides[i] - pads[i];
                     }
 
