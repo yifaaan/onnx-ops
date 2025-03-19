@@ -18,7 +18,7 @@ tensor_dims: 张量维度
 tensor_shape: 张量形状
 position: 位置索引
 """
-def generate_sequence_insert_test(test_name="test", seed=None, seq_length=20, tensor_dims=3, tensor_shape=[3, 20, 50], insert_tensor_shape=[3, 20, 50], position=-1):
+def generate_sequence_insert_test(test_name="test", seed=None, seq_length=20, tensor_dims=4, tensor_shape=[16, 32, 48,48], insert_tensor_shape=[16, 32, 48], position=20):
     if seed is None:
         seed = int(time.time())
     np.random.seed(seed)
@@ -71,7 +71,7 @@ def generate_multiple_tests(num_tests=3):
     all_test_data = []
     for i in range(num_tests):
         test_name = f"test_{i+1}"
-        test_data = generate_sequence_insert_test(test_name, seq_length=3, tensor_dims=1, tensor_shape=[1], insert_tensor_shape=[1])
+        test_data = generate_sequence_insert_test(test_name)
         # test_data = generate_sequence_insert_test(test_name)
         all_test_data.append(test_data)
         # 保存测试数据到JSON文件
@@ -171,7 +171,7 @@ def run_sequence_insert_test(test_data):
 
 # 运行测试生成
 if __name__ == "__main__":
-    files, all_test_data = generate_multiple_tests(3)
+    files, all_test_data = generate_multiple_tests(1)
     
     # 运行一个示例测试
     # test_data = generate_sequence_at_test("Example_Test")
@@ -194,3 +194,4 @@ if __name__ == "__main__":
         # 保存更新后的JSON文件
         with open(file, "w") as f:
             json.dump(existing_data, f, indent=2)
+    

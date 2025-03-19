@@ -18,7 +18,7 @@ tensor_dims: 张量维度
 tensor_shape: 张量形状
 position: 位置索引
 """
-def generate_sequence_erase_test(test_name="test", seed=None, seq_length=20, tensor_dims=3, tensor_shape=[3, 20, 50], position=0):
+def generate_sequence_erase_test(test_name="test", seed=None, seq_length=20, tensor_dims=4, tensor_shape=[16,32,48,48], position=20):
     if seed is None:
         seed = int(time.time())
     np.random.seed(seed)
@@ -148,7 +148,7 @@ def run_sequence_erase_test(test_data):
 
 # 运行测试生成
 if __name__ == "__main__":
-    files, all_test_data = generate_multiple_tests(3)
+    files, all_test_data = generate_multiple_tests(1)
     
     # 运行一个示例测试
     # test_data = generate_sequence_at_test("Example_Test")

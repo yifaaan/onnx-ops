@@ -84,9 +84,9 @@ double test_non_max_suppression(std::string_view file_name)
     }
 
     float iou_threshold = test_data["input"]["iou_threshold"].get<float>();
-    int64_t max_output_boxes_per_class = 0; // 使用默认值
-    float score_threshold = 0.0f; // 使用默认值
-    int center_point_box = 0; // 默认使用[y1, x1, y2, x2]格式
+    int64_t max_output_boxes_per_class = test_data["input"]["max_output_boxes_per_class"].get<int64_t>(); // 使用默认值
+    float score_threshold = test_data["input"]["score_threshold"].get<float>(); // 使用默认值
+    int center_point_box = test_data["input"]["center_point_box"].get<int>(); // 默认使用[y1, x1, y2, x2]格式
 
     auto start = std::chrono::steady_clock::now();
 
@@ -151,7 +151,34 @@ double test_non_max_suppression(std::string_view file_name)
         // 检查两个集合是否相等
         if (selected_set != expected_set) {
             std::cout << "\n警告: 选择的框不匹配!" << std::endl;
+            
+            // 打印在C++中有但ONNX中没有的框
+            std::cout << "C++选择但ONNX未选择的框:" << std::endl;
+            for (const auto& idx : selected_set) {
+                if (expected_set.find(idx) == expected_set.end()) {
+                    std::cout << "[" << idx[0] << ", " << idx[1] << ", " << idx[2] << "]" << std::endl;
+                    // 可以打印更多信息，如框坐标、分数等
+                }
+            }
+            
+            // 打印在ONNX中有但C++中没有的框
+            std::cout << "ONNX选择但C++未选择的框:" << std::endl;
+            for (const auto& idx : expected_set) {
+                if (selected_set.find(idx) == selected_set.end()) {
+                    std::cout << "[" << idx[0] << ", " << idx[1] << ", " << idx[2] << "]" << std::endl;
+                }
+            }
+            
             return 0;
+        }
+        
+        // 验证所有选中框的分数是否大于分数阈值
+        for (const auto& idx : selected_indices) {
+            int batch_idx = idx[0];
+            int class_idx = idx[1];
+            int box_idx = idx[2];
+            float score = scores[batch_idx][class_idx][box_idx];
+            assert(score > score_threshold);
         }
         
         std::cout << "NonMaxSuppression test passed: " << file_name << std::endl;
@@ -296,6 +323,13 @@ double test_sequence_construct(std::string_view file_name)
             output_sequence.push_back(input_sequence[i]);
         }
     }
+    else if (input_sequence.size() == 1)
+    {
+        auto start = std::chrono::steady_clock::now();
+        output_sequence = SequenceConstruct(input_sequence[0]);
+        auto end = std::chrono::steady_clock::now();
+        diff = end - start;
+    }
 
     // 验证输出序列
 
@@ -385,7 +419,12 @@ double test_sequence_insert(std::string_view file_name)
         auto b = input_sequence[i].getData();
         assert(a.size() == b.size());
         assert(onnx_output_sequence[i].getDims() == input_sequence[i].getDims());
+        for (size_t j = 0; j < a.size(); j++)
+        {
+            assert(std::abs(a[j] - b[j]) < 1e-4f);
+        }
     }
+
     return diff.count() * 1000;
 }
 
@@ -587,64 +626,90 @@ int main(int argc, char* argv[])
     std::string test_path;
 
     // // 运行NMS测试
-    double t = 0;
-    // for (int i = 0; i < 100; i++)
+    // double t = 0;
+    // for (int i = 0; i < 3; i++)
     // {
     //     t +=
-    //     test_non_max_suppression("../py/py/nms_test/nms_test_NonMaxSuppression_Test_1.json");
+    //     test_non_max_suppression("../jsons/non_max_suppression/test_1.json");
     // }
 
-    // std::cout << "执行时间: " << t / 100 << " 毫秒" << std::endl;
+    // std::cout << "执行时间: " << t / 3 << " 毫秒" << std::endl;
+    std::vector<std::vector<std::vector<float>>> boxes = {
+        {
+            {1.0, 1.0, 0.0, 0.0},
+            {0.0, 0.1, 1.0, 1.1},
+            {0.0, 0.9, 1.0, -0.1},
+            {0.0, 10.0, 1.0, 11.0},
+            {1.0, 10.1, 0.0, 11.1},
+            {1.0, 101.0, 0.0, 100.0}
+        }
+    };
+    std::vector<std::vector<std::vector<float>>> scores = {
+        {
+            {0.9, 0.75, 0.6, 0.95, 0.5, 0.3}
+        }
+    };
+    int max_output_boxes_per_class = 3;
+    float iou_threshold = 0.5;
+    float score_threshold = 0.0;
+    std::vector<std::vector<int>> selected_indices = {
+        {0,0,3},{0, 0, 0}, {0, 0, 5}
+    };
+    auto res = nonMaxSuppression(boxes, scores, max_output_boxes_per_class, iou_threshold, score_threshold);
+    for (const auto &indices : res) {
+        std::cout << "Batch: " << indices[0] << ", Class: " << indices[1] << ", Box: " << indices[2] << std::endl;
+    }
+
 
     // // 运行SequenceAt测试
     // std::cout << "\nTesting SequenceAt operator..." << std::endl;
     // t = 0;
-    // for (int i = 0; i < 100; i++)
+    // for (int i = 0; i < 3; i++)
     // {
     //     t += test_sequence_at("../jsons/sequence_at/test_1.json");
     // }
-    // std::cout << "执行时间: " << t / 100 << " 毫秒" << std::endl;
+    // std::cout << "执行时间: " << t / 3 << " 毫秒" << std::endl;
 
-    // // 运行SequenceConstruct测试
+    // 运行SequenceConstruct测试
     // std::cout << "\nTesting SequenceConstruct operator..." << std::endl;
     // t = 0;
-    // for (int i = 0; i < 100; i++)
+    // for (int i = 0; i < 3; i++)
     // {
     //     t += test_sequence_construct("../jsons/sequence_construct/test_1.json");
     // }
-    // std::cout << "执行时间: " << t / 100 << " 毫秒" << std::endl;
+    // std::cout << "执行时间: " << t / 3 << " 毫秒" << std::endl;
 
     // // 运行SequenceInsert测试
     // std::cout << "\nTesting SequenceInsert operator..." << std::endl;
     // t = 0;
-    // for (int i = 0; i < 100; i++)
+    // for (int i = 0; i < 3; i++)
     // {
     //     t += test_sequence_insert("../jsons/sequence_insert/test_1.json");
     // }
-    // std::cout << "执行时间: " << t / 100 << " 毫秒" << std::endl;
+    // std::cout << "执行时间: " << t / 3 << " 毫秒" << std::endl;
 
-    // // 运行SequenceErase测试
+    // 运行SequenceErase测试
     // std::cout << "\nTesting SequenceErase operator..." << std::endl;
     // t = 0;
-    // for (int i = 0; i < 100; i++)
+    // for (int i = 0; i < 3; i++)
     // {
     //     t += test_sequence_erase("../jsons/sequence_erase/test_1.json");
     // }
-    // std::cout << "执行时间: " << t / 100 << " 毫秒" << std::endl;
+    // std::cout << "执行时间: " << t / 3 << " 毫秒" << std::endl;
 
     // std::cout << "\n所有测试完成!" << std::endl;
 
 
 // 运行SequenceErase测试
-    std::cout << "\nTesting SequenceErase operator..." << std::endl;
-    t = 0;
-    for (int i = 0; i < 100; i++)
-    {
-        t += test_non_max_suppression("../jsons/non_max_suppression/test_1.json");
-    }
-    std::cout << "执行时间: " << t / 100 << " 毫秒" << std::endl;
+    // std::cout << "\nTesting SequenceErase operator..." << std::endl;
+    // t = 0;
+    // for (int i = 0; i < 3; i++)
+    // {
+    //     t += test_non_max_suppression("../jsons/non_max_suppression/test_1.json");
+    // }
+    // std::cout << "执行时间: " << t / 100 << " 毫秒" << std::endl;
 
-    std::cout << "\n所有测试完成!" << std::endl;
+    // std::cout << "\n所有测试完成!" << std::endl;
     
 
     // test_lppool("../py/lppool_test/lppool_test_LpPool_3D_1.json");

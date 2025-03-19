@@ -1,6 +1,6 @@
 #include <vector>
 #include <iostream>
-
+#include <algorithm>
 
 // �����������IOU
 float calculateIOU(const std::vector<float>& box1,
@@ -13,14 +13,14 @@ float calculateIOU(const std::vector<float>& box1,
     if (center_point_box) {
         // [x_center, y_center, width, height] ת��Ϊ [x1, y1, x2, y2]
         float w1 = box1[2], h1 = box1[3];
-        if (w1 < 0 || h1 < 0) return 0.0f;  // ���Ȼ�߶�Ϊ������Ч��
+        if (w1 < 0 || h1 < 0) return 0.0f;  // ���Ȼ�߶��?������Ч��
         x1 = box1[0] - w1 / 2;
         y1 = box1[1] - h1 / 2;
         x2 = box1[0] + w1 / 2;
         y2 = box1[1] + h1 / 2;
 
         float w2 = box2[2], h2 = box2[3];
-        if (w2 < 0 || h2 < 0) return 0.0f;  // ���Ȼ�߶�Ϊ������Ч��
+        if (w2 < 0 || h2 < 0) return 0.0f;  // ���Ȼ�߶��?������Ч��
         x1_ = box2[0] - w2 / 2;
         y1_ = box2[1] - h2 / 2;
         x2_ = box2[0] + w2 / 2;
@@ -34,9 +34,9 @@ float calculateIOU(const std::vector<float>& box1,
         x2_ = box2[3]; y2_ = box2[2];
     }
 
-    // ���������Ч��
+    // ���������Ч��?
     if (x1 > x2 || y1 > y2 || x1_ > x2_ || y1_ > y2_) {
-        return 0.0f;  // ��Ч�����Ϊ������
+        return 0.0f;  // ��Ч������?������
     }
 
     // ���㽻������
@@ -56,15 +56,15 @@ float calculateIOU(const std::vector<float>& box1,
 
     // �������Ƿ���Ч
     if (box1_area <= 0.0f || box2_area <= 0.0f) {
-        return 0.0f;  // �������Ч
+        return 0.0f;  // ��������?
     }
 
-    // ���㲢�����
+    // ���㲢�����?
     float union_area = box1_area + box2_area - inter_area;
 
-    // ��鲢�����
+    // ���?�����?
     if (union_area <= 0.0f) {
-        return 0.0f;  // ���������Ч
+        return 0.0f;  // ����������?
     }
 
     // ����IOU

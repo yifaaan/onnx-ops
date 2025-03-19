@@ -16,8 +16,13 @@ def generate_nms_test(test_name="test", seed=None):
     np.random.seed(seed)
     
     # 使用更小的测试数据
-    num_classes = 3  # 减少类别数
-    num_boxes = 5    # 每个类别的框数量固定为5个
+    num_classes = 48  
+    num_boxes = 20    # 每个类别的框数量固定为个
+    score_threshold = 0.5
+    
+    iou_threshold = 0.5
+    max_output_boxes_per_class = 2
+    center_point_box = 0  # 0表示框格式为[y1, x1, y2, x2]，1表示[x_center, y_center, width, height]
     
     # 生成随机框
     boxes = []
@@ -46,16 +51,16 @@ def generate_nms_test(test_name="test", seed=None):
                 'score': float(score)
             })
     
-    # 使用固定的IoU阈值
-    iou_threshold = 0.5
-    
     # 创建测试数据
     test_data = {
         "name": test_name,
         "seed": seed,
         "input": {
             "boxes": boxes,
-            "iou_threshold": iou_threshold
+            "iou_threshold": iou_threshold,
+            "score_threshold": score_threshold,
+            "max_output_boxes_per_class": max_output_boxes_per_class,
+            "center_point_box": center_point_box
         },
         "params": {
             "num_classes": num_classes,
